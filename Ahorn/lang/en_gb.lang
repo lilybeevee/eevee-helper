@@ -1,0 +1,17 @@
+# Holdable Tiles
+placements.entities.EeveeHelper/HoldableTiles.tooltips.tiletype=Changes the appearance of the block.
+placements.entities.EeveeHelper/HoldableTiles.tooltips.noDuplicate=Whether the block doesn't duplicate if you enter the room holding it.
+
+# Holdable Container
+placements.entities.EeveeHelper/HoldableContainer.tooltips.whitelist=Comma-separated list of entity class names to contain (e.g. Booster,CrystalStaticSpinner,etc). Contains most entities if empty.
+placements.entities.EeveeHelper/HoldableContainer.tooltips.gravity=Whether the container has gravity and gets pushed by solids.
+placements.entities.EeveeHelper/HoldableContainer.tooltips.holdable=Whether you can pick up and throw the container.
+placements.entities.EeveeHelper/HoldableContainer.tooltips.fitContained=Whether the container's box is resized if entities inside it move.
+placements.entities.EeveeHelper/HoldableContainer.tooltips.noDuplicate=Whether the container doesn't duplicate if you enter the room holding it.
+
+# Attached Container
+placements.entities.EeveeHelper/AttachedContainer.tooltips.whitelist=Comma-separated list of entity class names to contain (e.g. Booster,CrystalStaticSpinner,etc). Contains most entities if empty.
+placements.entities.EeveeHelper/AttachedContainer.tooltips.attachTo=Attaches to an entity with the given entity class name (e.g. DustTrackSpinner). Attaches to solids and jumpthrus if empty.
+
+# Room Chest
+placements.entities.EeveeHelper/RoomChest.tooltips.room=Name of the room this chest should contain.
