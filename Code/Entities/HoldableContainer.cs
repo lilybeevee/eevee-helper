@@ -1,0 +1,369 @@
+﻿using Celeste.Mod.EeveeHelper.Components;
+using Celeste.Mod.Entities;
+using Microsoft.Xna.Framework;
+using Monocle;
+using MonoMod.Utils;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Celeste.Mod.EeveeHelper.Entities {
+    [Tracked]
+    [CustomEntity("EeveeHelper/HoldableContainer")]
+    public class HoldableContainer : Actor {
+        private string[] whitelist;
+        private bool hasGravity;
+        private bool holdable;
+        private bool noDuplicate;
+
+        public EntityID ID;
+        public EntityContainer Container;
+        public Vector2 Speed;
+        public Holdable Hold;
+        private Dictionary<Entity, bool> wasCollidable = new Dictionary<Entity, bool>();
+        private float noGravityTimer;
+        private Vector2 prevLiftSpeed;
+        private Vector2 holdTarget = Vector2.Zero;
+
+        public HoldableContainer(EntityData data, Vector2 offset, EntityID id) : base(data.Position + offset + new Vector2(data.Width / 2f, data.Height)) {
+            whitelist = data.Attr("whitelist").Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+            holdable = data.Bool("holdable");
+            hasGravity = data.Bool("gravity");
+            noDuplicate = data.Bool("noDuplicate");
+
+            ID = id;
+            Collider = new Hitbox(data.Width, data.Height);
+            Collider.Position = new Vector2(-Width / 2f, -Height);
+            AllowPushing = hasGravity;
+            Depth = Depths.Top - 10;
+
+            Add(Container = new EntityContainer {
+                FitContained = data.Bool("fitContained"),
+                IsValid = IsValid,
+                OnFit = OnFit,
+                OnPreMove = () => AllowPushing = false,
+                OnPostMove = () => AllowPushing = hasGravity,
+            });
+
+            if (holdable) {
+                Add(Hold = new Holdable() {
+                    PickupCollider = new Hitbox(Width + 8f, Height + 8f, -Width / 2f - 4f, -Height - 4f),
+                    SlowFall = false,
+                    SlowRun = true,
+                    OnPickup = OnPickup,
+                    OnRelease = OnRelease,
+                    OnHitSpring = HitSpring,
+                    SpeedGetter = () => Speed,
+                    OnCarry = OnCarry
+                });
+            }
+
+            SquishCallback = OnSquish;
+        }
+
+        public override void Awake(Scene scene) {
+            base.Awake(scene);
+            foreach (HoldableContainer container in scene.Tracker.GetEntities<HoldableContainer>()) {
+                if (noDuplicate && container != this && container.ID.Key == ID.Key && container.Hold != null && container.Hold.IsHeld) {
+                    RemoveSelf();
+                }
+            }
+        }
+
+        private bool IsValid(Entity entity) {
+            if (whitelist.Length == 0)
+                return !(entity is HoldableContainer || entity is Player || entity is SolidTiles || entity is BackgroundTiles || entity is Decal || entity is Trigger);
+            else
+                return whitelist.Contains(entity.GetType().Name);
+        }
+
+        private void OnPickup() {
+            Speed = Vector2.Zero;
+            AddTag(Tags.Persistent);
+            wasCollidable.Clear();
+            foreach (var entity in Container.Contained) {
+                wasCollidable.Add(entity, entity.Collidable);
+                entity.AddTag(Tags.Persistent);
+                entity.Collidable = false;
+            }
+        }
+
+        private void OnRelease(Vector2 force) {
+            if (CollideCheck<Solid>()) {
+                ReleasedSquishWiggle();
+                force = Vector2.Zero;
+            }
+            RemoveTag(Tags.Persistent);
+            foreach (var entity in Container.Contained) {
+                entity.RemoveTag(Tags.Persistent);
+                entity.Collidable = wasCollidable.ContainsKey(entity) ? wasCollidable[entity] : true;
+            }
+            if (force.X != 0f && force.Y == 0f)
+                force.Y = -0.4f;
+            Speed = force * 200f;
+            if (Speed != Vector2.Zero)
+                noGravityTimer = 0.1f;
+        }
+
+        private void OnCarry(Vector2 target) {
+            holdTarget = target;
+            Container.DoMoveAction(() => Position = target);
+        }
+
+        protected override void OnSquish(CollisionData data) {
+            bool wiggled = false;
+            Container.DoMoveAction(() => wiggled = TryBigSquishWiggle(data));
+            return;
+        }
+
+        private bool TryBigSquishWiggle(CollisionData data) {
+            data.Pusher.Collidable = true;
+            for (int i = 0; i <= Math.Max(3, (int)Width/2); i++) {
+                for (int j = 0; j <= Math.Max(3, (int)Height/2); j++) {
+                    if (i != 0 || j != 0) {
+                        for (int k = 1; k >= -1; k -= 2) {
+                            for (int l = 1; l >= -1; l -= 2) {
+                                var value = new Vector2(i * k, j * l);
+                                if (!CollideCheck<Solid>(Position + value)) {
+                                    Position += value;
+                                    data.Pusher.Collidable = false;
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            data.Pusher.Collidable = false;
+            return false;
+        }
+
+        private void ReleasedSquishWiggle() {
+            Container.DoMoveAction(() => {
+                for (int i = 0; i <= Math.Max(3, (int)Width); i++) {
+                    for (int j = 0; j <= Math.Max(3, (int)Height); j++) {
+                        if (i != 0 || j != 0) {
+                            for (int k = 1; k >= -1; k -= 2) {
+                                for (int l = 1; l >= -1; l -= 2) {
+                                    var value = new Vector2(i * k, j * l);
+                                    if (!CollideCheck<Solid>(Position + value)) {
+                                        Position += value;
+                                        return;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        private void OnFit(Vector2 pos, float width, float height) {
+            Position = new Vector2(pos.X + width / 2f, pos.Y + height);
+            Collider.Position = new Vector2(-width / 2f, -height);
+            Collider.Width = width;
+            Collider.Height = height;
+            if (holdable) {
+                Hold.PickupCollider.Position = Collider.Position - new Vector2(4f, 4f);
+                Hold.PickupCollider.Width = Collider.Width + 8f;
+                Hold.PickupCollider.Height = Collider.Height + 8f;
+
+                if (Hold.IsHeld)
+                    Container.DoMoveAction(() => Position = holdTarget);
+            }
+        }
+
+        public override void Update() {
+            base.Update();
+
+            if (holdable && Hold.IsHeld) {
+                prevLiftSpeed = Vector2.Zero;
+            } else {
+                holdTarget = Vector2.Zero;
+                var level = SceneAs<Level>();
+                if (OnGround(1)) {
+                    float target;
+                    if (!OnGround(Position + Vector2.UnitX * 3f, 1)) {
+                        target = 20f;
+                    } else if (!OnGround(Position - Vector2.UnitX * 3f, 1)) {
+                        target = -20f;
+                    } else {
+                        target = 0f;
+                    }
+                    Speed.X = Calc.Approach(Speed.X, target, 800f * Engine.DeltaTime);
+                    var liftSpeed = LiftSpeed;
+                    if (liftSpeed == Vector2.Zero && prevLiftSpeed != Vector2.Zero) {
+                        Speed = prevLiftSpeed;
+                        prevLiftSpeed = Vector2.Zero;
+                        Speed.Y = Math.Min(Speed.Y * 0.6f, 0f);
+                        if (Speed.X != 0f && Speed.Y == 0f) {
+                            Speed.Y = -60f;
+                        }
+                        if (Speed.Y < 0f) {
+                            noGravityTimer = 0.15f;
+                        }
+                    } else {
+                        prevLiftSpeed = liftSpeed;
+                        if (liftSpeed.Y < 0f && Speed.Y < 0f) {
+                            Speed.Y = 0f;
+                        }
+                    }
+                } else if (!holdable || Hold.ShouldHaveGravity) {
+                    var num = 800f;
+                    if (Math.Abs(Speed.Y) <= 30f) {
+                        num *= 0.5f;
+                    }
+                    var num2 = 350f;
+                    if (Speed.Y < 0f) {
+                        num2 *= 0.5f;
+                    }
+                    Speed.X = Calc.Approach(Speed.X, 0f, num2 * Engine.DeltaTime);
+                    if (noGravityTimer > 0f) {
+                        noGravityTimer -= Engine.DeltaTime;
+                    } else {
+                        Speed.Y = Calc.Approach(Speed.Y, 200f, num * Engine.DeltaTime);
+                    }
+                }
+                if (!hasGravity)
+                    Speed.Y = 0;
+                MoveH(Speed.X * Engine.DeltaTime, OnCollideH, null);
+                MoveV(Speed.Y * Engine.DeltaTime, OnCollideV, null);
+                if (Left < level.Bounds.Left) {
+                    Container.DoMoveAction(() => Left = level.Bounds.Left);
+                    Speed.X = Speed.X * -0.4f;
+                } else if (Top < (level.Bounds.Top - 4)) {
+                    Container.DoMoveAction(() => Top = level.Bounds.Top + 4);
+                    Speed.Y = 0f;
+                } else if (Top > level.Bounds.Bottom) {
+                    Die();
+                    return;
+                }
+            }
+            Hold?.CheckAgainstColliders();
+        }
+
+        public override bool IsRiding(Solid solid) {
+            return hasGravity && !Container.Contained.Contains(solid) && base.IsRiding(solid);
+        }
+
+        public override bool IsRiding(JumpThru jumpThru) {
+            return hasGravity && !Container.Contained.Contains(jumpThru) && base.IsRiding(jumpThru);
+        }
+
+        private void Die() {
+            RemoveSelf();
+        }
+
+        private void OnCollideH(CollisionData data) {
+            if (data.Hit is DashSwitch) {
+                (data.Hit as DashSwitch).OnDashCollide(null, Vector2.UnitX * Math.Sign(Speed.X));
+            }
+            Speed.X = Speed.X * -0.4f;
+        }
+
+        private void OnCollideV(CollisionData data) {
+            if (data.Hit is DashSwitch) {
+                (data.Hit as DashSwitch).OnDashCollide(null, Vector2.UnitY * Math.Sign(Speed.Y));
+            }
+            Speed.Y = 0f;
+        }
+
+        public bool HitSpring(Spring spring) {
+            if (!holdable || !Hold.IsHeld) {
+                if (spring.Orientation == Spring.Orientations.Floor && Speed.Y >= 0f) {
+                    Speed.X = Speed.X * 0.5f;
+                    Speed.Y = -160f;
+                    noGravityTimer = 0.15f;
+                    return true;
+                }
+                if (spring.Orientation == Spring.Orientations.WallLeft && Speed.X <= 0f) {
+                    MoveTowardsY(spring.CenterY + 5f, 4f, null);
+                    Speed.X = 220f;
+                    Speed.Y = -80f;
+                    noGravityTimer = 0.1f;
+                    return true;
+                }
+                if (spring.Orientation == Spring.Orientations.WallRight && Speed.X >= 0f) {
+                    MoveTowardsY(spring.CenterY + 5f, 4f, null);
+                    Speed.X = -220f;
+                    Speed.Y = -80f;
+                    noGravityTimer = 0.1f;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+
+        public static void Load() {
+            On.Celeste.Actor.MoveHExact += Actor_MoveHExact;
+            On.Celeste.Actor.MoveVExact += Actor_MoveVExact;
+            On.Celeste.Actor.OnGround_int += Actor_OnGround_int;
+        }
+
+        public static void Unload() {
+            On.Celeste.Actor.MoveHExact -= Actor_MoveHExact;
+            On.Celeste.Actor.MoveVExact -= Actor_MoveVExact;
+            On.Celeste.Actor.OnGround_int -= Actor_OnGround_int;
+        }
+
+        private static bool Actor_MoveHExact(On.Celeste.Actor.orig_MoveHExact orig, Actor self, int moveH, Collision onCollide, Solid pusher) {
+            if (self is HoldableContainer container) {
+                var collidable = self.Collidable;
+                var result = true;
+                container.Container.DoMoveAction(() => {
+                    result = orig(self, moveH, onCollide, pusher);
+                }, (entity, offset) => {
+                    /*if (entity is Platform platform) {
+                        platform.MoveToX(self.Position.X + offset.X, container.Speed.X);
+                        platform.MoveStaticMovers(Vector2.UnitX * ((self.Position + offset) - entity.Position).X);
+                    }
+                    entity.Position.X = self.Position.X + offset.X;*/
+                    if (entity is Platform platform) {
+                        platform.MoveToX(self.Position.X + offset.X, platform.LiftSpeed.X + container.Speed.X);
+                    } else {
+                        entity.Position.X = self.Position.X + offset.X;
+                    }
+                });
+                return result;
+            }
+            return orig(self, moveH, onCollide, pusher);
+        }
+
+        private static bool Actor_MoveVExact(On.Celeste.Actor.orig_MoveVExact orig, Actor self, int moveV, Collision onCollide, Solid pusher) {
+            if (self is HoldableContainer container) {
+                var result = true;
+                var collidable = self.Collidable;
+                container.Container.DoMoveAction(() => {
+                    result = orig(self, moveV, onCollide, pusher);
+                }, (entity, offset) => {
+                    /*if (entity is Platform platform) {
+                        platform.MoveToY(self.Position.Y + offset.Y, container.Speed.Y);
+                        platform.MoveStaticMovers(Vector2.UnitY * ((self.Position + offset) - entity.Position).Y);
+                    }
+                    entity.Position.Y = self.Position.Y + offset.Y;*/
+                    if (entity is Platform platform) {
+                        platform.MoveToY(self.Position.Y + offset.Y, platform.LiftSpeed.Y + container.Speed.Y);
+                    } else {
+                        entity.Position.Y = self.Position.Y + offset.Y;
+                    }
+                });
+                return result;
+            }
+            return orig(self, moveV, onCollide, pusher);
+        }
+
+        private static bool Actor_OnGround_int(On.Celeste.Actor.orig_OnGround_int orig, Actor self, int downCheck) {
+            if (self is HoldableContainer container) {
+                var result = true;
+                container.Container.DoIgnoreCollision(() => {
+                    result = orig(self, downCheck);
+                });
+                return result;
+            }
+            return orig(self, downCheck);
+        }
+    }
+}
