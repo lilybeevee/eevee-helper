@@ -50,13 +50,22 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             if (holdable) {
                 Add(Hold = new Holdable() {
                     PickupCollider = new Hitbox(Width + 8f, Height + 8f, -Width / 2f - 4f, -Height - 4f),
-                    SlowFall = false,
-                    SlowRun = true,
+                    SlowFall = data.Bool("slowFall", false),
+                    SlowRun = data.Bool("slowRun", true),
                     OnPickup = OnPickup,
                     OnRelease = OnRelease,
                     OnHitSpring = HitSpring,
                     SpeedGetter = () => Speed,
                     OnCarry = OnCarry
+                });
+
+                Add(new DepthPartner(Depths.Player + 1) {
+                    OnUpdate = () => {
+                        if (Hold.IsHeld) {
+                            foreach (var entity in Container.Contained)
+                                entity.Collidable = false;
+                        }
+                    }
                 });
             }
 
@@ -178,8 +187,16 @@ namespace Celeste.Mod.EeveeHelper.Entities {
         public override void Update() {
             base.Update();
 
+            if (Container.Contained.Count == 0) {
+                RemoveSelf();
+                return;
+            }
+
             if (holdable && Hold.IsHeld) {
                 prevLiftSpeed = Vector2.Zero;
+                foreach (var entity in Container.Contained) {
+                    entity.Collidable = false;
+                }
             } else {
                 holdTarget = Vector2.Zero;
                 var level = SceneAs<Level>();

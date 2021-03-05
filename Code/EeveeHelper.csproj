@@ -60,6 +60,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Components\DepthPartner.cs" />
     <Compile Include="Components\EntityContainer.cs" />
     <Compile Include="EeveeHelperModule.cs" />
     <Compile Include="EeveeUtils.cs" />

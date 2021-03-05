@@ -1,5 +1,5 @@
 - Name: EeveeHelper
-  Version: 1.0.0
+  Version: 1.0.1
   DLL: Code/bin/Debug/EeveeHelper.dll
   Dependencies:
     - Name: Everest
