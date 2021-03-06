@@ -13,6 +13,8 @@ namespace Celeste.Mod.EeveeHelper.Entities {
         public HoldableTilesSolid Solid;
         private char tiletype;
         private TileGrid tiles;
+        private bool holdable;
+        private bool destroyable;
         private bool noDuplicate;
         private float noGravityTimer;
         private Vector2 prevLiftSpeed;
@@ -20,7 +22,9 @@ namespace Celeste.Mod.EeveeHelper.Entities {
 
         public HoldableTiles(EntityData data, Vector2 offset, EntityID id) : base(data.Position + offset + new Vector2(data.Width / 2f, data.Height)) {
             tiletype = data.Char("tiletype");
+            holdable = data.Bool("holdable", true);
             noDuplicate = data.Bool("noDuplicate");
+            destroyable = data.Bool("destroyable", true);
 
             ID = id;
             Collider = new Hitbox(data.Width, data.Height);
@@ -30,23 +34,25 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             Add(new LightOcclude(1f));
             Add(tiles = GFX.FGAutotiler.GenerateBox(tiletype, (int)(Width / 8), (int)(Height / 8)).TileGrid);
             tiles.Position = new Vector2(-Width / 2f, -Height);
-            Add(Hold = new Holdable() {
-                PickupCollider = new Hitbox(Width + 16f, Height + 16f, (-Width / 2f) - 8f, -Height - 8f),
-                SlowFall = false,
-                SlowRun = true,
-                OnPickup = OnPickup,
-                OnRelease = OnRelease,
-                OnHitSpring = HitSpring,
-                SpeedGetter = () => Speed,
-                OnCarry = OnCarry
-            });
+            if (holdable) {
+                Add(Hold = new Holdable() {
+                    PickupCollider = new Hitbox(Width + 16f, Height + 16f, (-Width / 2f) - 8f, -Height - 8f),
+                    SlowFall = false,
+                    SlowRun = true,
+                    OnPickup = OnPickup,
+                    OnRelease = OnRelease,
+                    OnHitSpring = HitSpring,
+                    SpeedGetter = () => Speed,
+                    OnCarry = OnCarry
+                });
+            }
             SquishCallback = OnSquish;
         }
 
         public override void Added(Scene scene) {
             base.Added(scene);
             foreach (HoldableTiles tiles in scene.Tracker.GetEntities<HoldableTiles>()) {
-                if (noDuplicate && tiles != this && tiles.ID.Key == ID.Key && tiles.Hold.IsHeld) {
+                if (noDuplicate && tiles != this && tiles.ID.Key == ID.Key && tiles.holdable && tiles.Hold.IsHeld) {
                     RemoveSelf();
                     return;
                 }
@@ -150,11 +156,40 @@ namespace Celeste.Mod.EeveeHelper.Entities {
 
         public override void Update() {
             base.Update();
-            if (Hold.IsHeld) {
+
+            if (destroyable) {
+                foreach (SeekerBarrier barrier in Scene.Tracker.GetEntities<SeekerBarrier>()) {
+                    barrier.Collidable = true;
+                    var collided = CollideCheck(barrier);
+                    barrier.Collidable = false;
+
+                    if (collided) {
+                        Audio.Play(SFX.game_10_glider_emancipate, Position);
+                        var speed = Speed;
+                        if (holdable && Hold.IsHeld) {
+                            speed = Hold.Holder.Speed * 0.5f;
+                            Input.Rumble(RumbleStrength.Medium, RumbleLength.Medium);
+                        }
+                        Destroy(speed.SafeNormalize());
+                        return;
+                    }
+                }
+            }
+
+            if (holdable && Hold.IsHeld) {
                 prevLiftSpeed = Vector2.Zero;
             } else {
                 var level = SceneAs<Level>();
-                if (OnGround(1)) {
+                Spring spring = null;
+                if (!holdable) {
+                    foreach (var entity in Scene.Entities)
+                        if (entity is Spring && CollideCheck(entity))
+                            spring = (Spring)entity;
+                }
+                if (spring != null) {
+                    HitSpring(spring);
+                    EeveeUtils.m_SpringBounceAnimate.Invoke(spring, new object[] { });
+                } else if (OnGround(1)) {
                     float target;
                     if (!OnGround(Position + Vector2.UnitX * 3f, 1)) {
                         target = 20f;
@@ -181,7 +216,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
                             Speed.Y = 0f;
                         }
                     }
-                } else if (Hold.ShouldHaveGravity) {
+                } else if (!holdable || Hold.ShouldHaveGravity) {
                     var num = 800f;
                     if (Math.Abs(Speed.Y) <= 30f) {
                         num *= 0.5f;
@@ -213,7 +248,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
                     return;
                 }
             }
-            Hold.CheckAgainstColliders();
+            Hold?.CheckAgainstColliders();
         }
 
         public override bool IsRiding(Solid solid) {
@@ -246,11 +281,6 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             this.Solid.DestroyStaticMovers();
             this.Solid.RemoveSelf();
             RemoveSelf();
-        }
-
-        public override void Removed(Scene scene) {
-            base.Removed(scene);
-            Console.WriteLine("Gone!");
         }
 
 
@@ -315,7 +345,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
         }
 
         public bool HitSpring(Spring spring) {
-            if (!Hold.IsHeld) {
+            if (!holdable || !Hold.IsHeld) {
                 if (spring.Orientation == Spring.Orientations.Floor && Speed.Y >= 0f) {
                     Speed.X = Speed.X * 0.5f;
                     Speed.Y = -160f;

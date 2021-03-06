@@ -4,6 +4,7 @@ using Mono.Cecil.Cil;
 using Monocle;
 using MonoMod.Cil;
 using System;
+using System.Reflection;
 
 namespace Celeste.Mod.EeveeHelper {
     public class EeveeHelperModule : EverestModule {

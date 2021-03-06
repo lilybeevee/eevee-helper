@@ -3,7 +3,7 @@ module EeveeHelperEntityContainers
 using ..Ahorn, Maple
 
 @mapdef Entity "EeveeHelper/HoldableContainer" HoldableContainer(x::Integer, y::Integer, width::Integer=8, height::Integer=8, whitelist::String="", 
-    gravity::Bool=true, holdable::Bool=true, fitContained::Bool=true, noDuplicate::Bool=false, slowFall::Bool=false, slowRun::Bool=true)
+    gravity::Bool=true, holdable::Bool=true, fitContained::Bool=true, noDuplicate::Bool=false, slowFall::Bool=false, slowRun::Bool=true, destroyable::Bool=true)
 @mapdef Entity "EeveeHelper/AttachedContainer" AttachedContainer(x::Integer, y::Integer, width::Integer=8, height::Integer=8, whitelist::String="", attachTo::String="")
 
 const containerUnion = Union{HoldableContainer, AttachedContainer}

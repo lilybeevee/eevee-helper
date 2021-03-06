@@ -2,7 +2,7 @@ module EeveeHelperHoldableTiles
 
 using ..Ahorn, Maple
 
-@mapdef Entity "EeveeHelper/HoldableTiles" HoldableTiles(x::Integer, y::Integer, width::Integer=8, height::Integer=8, tiletype::String="3", noDuplicate::Bool=false)
+@mapdef Entity "EeveeHelper/HoldableTiles" HoldableTiles(x::Integer, y::Integer, width::Integer=8, height::Integer=8, tiletype::String="3", holdable::Bool=true, noDuplicate::Bool=false, destroyable::Bool=true)
 
 const placements = Ahorn.PlacementDict(
     "Holdable Tiles (Eevee Helper)" => Ahorn.EntityPlacement(

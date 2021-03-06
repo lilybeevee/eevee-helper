@@ -1,6 +1,8 @@
 # Holdable Tiles
 placements.entities.EeveeHelper/HoldableTiles.tooltips.tiletype=Changes the appearance of the block.
 placements.entities.EeveeHelper/HoldableTiles.tooltips.noDuplicate=Whether the block doesn't duplicate if you enter the room holding it.
+placements.entities.EeveeHelper/HoldableTiles.tooltips.holdable=Whether you can pick up and throw the block.
+placements.entities.EeveeHelper/HoldableTiles.tooltips.destroyable=Whether the block gets destroyed on contact with seeker barriers.
 
 # Holdable Container
 placements.entities.EeveeHelper/HoldableContainer.tooltips.whitelist=Comma-separated list of entity class names to contain (e.g. Booster,CrystalStaticSpinner,etc). Contains most entities if empty.
@@ -10,6 +12,7 @@ placements.entities.EeveeHelper/HoldableContainer.tooltips.fitContained=Whether 
 placements.entities.EeveeHelper/HoldableContainer.tooltips.noDuplicate=Whether the container doesn't duplicate if you enter the room holding it.
 placements.entities.EeveeHelper/HoldableContainer.tooltips.slowRun=Whether holding the container slows the player down.
 placements.entities.EeveeHelper/HoldableContainer.tooltips.slowFall=Makes the container behave like a jelly.
+placements.entities.EeveeHelper/HoldableContainer.tooltips.destroyable=Whether the container gets destroyed on contact with seeker barriers.
 
 # Attached Container
 placements.entities.EeveeHelper/AttachedContainer.tooltips.whitelist=Comma-separated list of entity class names to contain (e.g. Booster,CrystalStaticSpinner,etc). Contains most entities if empty.

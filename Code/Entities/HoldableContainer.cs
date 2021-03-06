@@ -4,6 +4,7 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using MonoMod.Utils;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -17,6 +18,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
         private bool hasGravity;
         private bool holdable;
         private bool noDuplicate;
+        private bool destroyable;
 
         public EntityID ID;
         public EntityContainer Container;
@@ -24,6 +26,10 @@ namespace Celeste.Mod.EeveeHelper.Entities {
         public Holdable Hold;
         private Dictionary<Entity, bool> wasCollidable = new Dictionary<Entity, bool>();
         private float noGravityTimer;
+        private float highFrictionTimer;
+        private bool destroyed;
+        private bool slowFall;
+        private float whiteAlpha;
         private Vector2 prevLiftSpeed;
         private Vector2 holdTarget = Vector2.Zero;
 
@@ -32,6 +38,8 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             holdable = data.Bool("holdable");
             hasGravity = data.Bool("gravity");
             noDuplicate = data.Bool("noDuplicate");
+            destroyable = data.Bool("destroyable", true);
+            slowFall = data.Bool("slowFall");
 
             ID = id;
             Collider = new Hitbox(data.Width, data.Height);
@@ -50,7 +58,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             if (holdable) {
                 Add(Hold = new Holdable() {
                     PickupCollider = new Hitbox(Width + 8f, Height + 8f, -Width / 2f - 4f, -Height - 4f),
-                    SlowFall = data.Bool("slowFall", false),
+                    SlowFall = slowFall,
                     SlowRun = data.Bool("slowRun", true),
                     OnPickup = OnPickup,
                     OnRelease = OnRelease,
@@ -61,7 +69,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
 
                 Add(new DepthPartner(Depths.Player + 1) {
                     OnUpdate = () => {
-                        if (Hold.IsHeld) {
+                        if (Hold.IsHeld || destroyed) {
                             foreach (var entity in Container.Contained)
                                 entity.Collidable = false;
                         }
@@ -97,21 +105,26 @@ namespace Celeste.Mod.EeveeHelper.Entities {
                 entity.AddTag(Tags.Persistent);
                 entity.Collidable = false;
             }
+            highFrictionTimer = 0.5f;
         }
 
         private void OnRelease(Vector2 force) {
-            if (CollideCheck<Solid>()) {
+            if (!destroyed && CollideCheck<Solid>()) {
                 ReleasedSquishWiggle();
                 force = Vector2.Zero;
             }
             RemoveTag(Tags.Persistent);
-            foreach (var entity in Container.Contained) {
-                entity.RemoveTag(Tags.Persistent);
-                entity.Collidable = wasCollidable.ContainsKey(entity) ? wasCollidable[entity] : true;
+            if (!destroyed) {
+                foreach (var entity in Container.Contained) {
+                    entity.RemoveTag(Tags.Persistent);
+                    entity.Collidable = wasCollidable.ContainsKey(entity) ? wasCollidable[entity] : true;
+                }
             }
+            if (slowFall)
+                force.Y *= 0.5f;
             if (force.X != 0f && force.Y == 0f)
                 force.Y = -0.4f;
-            Speed = force * 200f;
+            Speed = force * (slowFall ? 100f : 200f);
             if (Speed != Vector2.Zero)
                 noGravityTimer = 0.1f;
         }
@@ -187,9 +200,35 @@ namespace Celeste.Mod.EeveeHelper.Entities {
         public override void Update() {
             base.Update();
 
-            if (Container.Contained.Count == 0) {
-                RemoveSelf();
-                return;
+            if (!destroyed) {
+                if (Container.Contained.Count == 0) {
+                    RemoveSelf();
+                    return;
+                }
+
+                if (destroyable) {
+                    foreach (SeekerBarrier barrier in Scene.Tracker.GetEntities<SeekerBarrier>()) {
+                        barrier.Collidable = true;
+                        var collided = CollideCheck(barrier) && !Container.Contained.Contains(barrier);
+                        barrier.Collidable = false;
+
+                        if (collided) {
+                            destroyed = true;
+                            Collidable = false;
+                            if (holdable && Hold.IsHeld) {
+                                var speed = Hold.Holder.Speed;
+                                Hold.Holder.Drop();
+                                Speed = speed * 0.5f;
+                                Input.Rumble(RumbleStrength.Medium, RumbleLength.Medium);
+                            }
+                            Add(new Coroutine(DestroyRoutine()));
+                            return;
+                        }
+                    }
+                }
+            } else {
+                foreach (var entity in Container.Contained)
+                    entity.Collidable = false;
             }
 
             if (holdable && Hold.IsHeld) {
@@ -199,8 +238,19 @@ namespace Celeste.Mod.EeveeHelper.Entities {
                 }
             } else {
                 holdTarget = Vector2.Zero;
+                if (highFrictionTimer > 0f)
+                    highFrictionTimer -= Engine.DeltaTime;
                 var level = SceneAs<Level>();
-                if (OnGround(1)) {
+                Spring spring = null;
+                if (!holdable) {
+                    foreach (var entity in Scene.Entities)
+                        if (entity is Spring && CollideCheck(entity))
+                            spring = (Spring)entity;
+                }
+                if (spring != null) {
+                    HitSpring(spring);
+                    EeveeUtils.m_SpringBounceAnimate.Invoke(spring, new object[] { });
+                } else if(OnGround(1)) {
                     float target;
                     if (!OnGround(Position + Vector2.UnitX * 3f, 1)) {
                         target = 20f;
@@ -228,19 +278,35 @@ namespace Celeste.Mod.EeveeHelper.Entities {
                         }
                     }
                 } else if (!holdable || Hold.ShouldHaveGravity) {
-                    var num = 800f;
-                    if (Math.Abs(Speed.Y) <= 30f) {
-                        num *= 0.5f;
+                    float xAccel;
+                    float yAccel;
+                    if (!slowFall) {
+                        yAccel = 800f;
+                        if (Math.Abs(Speed.Y) <= 30f) {
+                            yAccel *= 0.5f;
+                        }
+                        xAccel = 350f;
+                        if (Speed.Y < 0f) {
+                            xAccel *= 0.5f;
+                        }
+                    } else {
+                        yAccel = 200f;
+                        if (Speed.Y >= -30f) {
+                            yAccel *= 0.5f;
+                        }
+                        if (Speed.Y < 0f) {
+                            xAccel = 40f;
+                        } else if (highFrictionTimer <= 0f) {
+                            xAccel = 40f;
+                        } else {
+                            xAccel = 10f;
+                        }
                     }
-                    var num2 = 350f;
-                    if (Speed.Y < 0f) {
-                        num2 *= 0.5f;
-                    }
-                    Speed.X = Calc.Approach(Speed.X, 0f, num2 * Engine.DeltaTime);
+                    Speed.X = Calc.Approach(Speed.X, 0f, xAccel * Engine.DeltaTime);
                     if (noGravityTimer > 0f) {
                         noGravityTimer -= Engine.DeltaTime;
                     } else {
-                        Speed.Y = Calc.Approach(Speed.Y, 200f, num * Engine.DeltaTime);
+                        Speed.Y = Calc.Approach(Speed.Y, slowFall ? 30f : 200f, yAccel * Engine.DeltaTime);
                     }
                 }
                 if (!hasGravity)
@@ -254,11 +320,16 @@ namespace Celeste.Mod.EeveeHelper.Entities {
                     Container.DoMoveAction(() => Top = level.Bounds.Top + 4);
                     Speed.Y = 0f;
                 } else if (Top > level.Bounds.Bottom) {
-                    Die();
+                    RemoveSelf();
                     return;
                 }
             }
             Hold?.CheckAgainstColliders();
+        }
+
+        public override void Render() {
+            base.Render();
+            Draw.Rect(Collider, Color.White * 0.8f * whiteAlpha);
         }
 
         public override bool IsRiding(Solid solid) {
@@ -269,7 +340,20 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             return hasGravity && !Container.Contained.Contains(jumpThru) && base.IsRiding(jumpThru);
         }
 
-        private void Die() {
+        private IEnumerator DestroyRoutine() {
+            Audio.Play(SFX.game_10_glider_emancipate, Position);
+            var tween = Tween.Create(Tween.TweenMode.Oneshot, null, 0.2f, true);
+            tween.OnUpdate = (t) => whiteAlpha = t.Eased;
+            Add(tween);
+            yield return 0.2f;
+            Container.FitContained = false;
+            foreach (var entity in Container.Contained)
+                entity.RemoveSelf();
+            Container.Contained.Clear();
+            var tween2 = Tween.Create(Tween.TweenMode.Oneshot, null, 0.1f, true);
+            tween2.OnUpdate = (t) => whiteAlpha = (1f - t.Eased);
+            Add(tween2);
+            yield return 0.1f;
             RemoveSelf();
         }
 
@@ -297,14 +381,14 @@ namespace Celeste.Mod.EeveeHelper.Entities {
                 }
                 if (spring.Orientation == Spring.Orientations.WallLeft && Speed.X <= 0f) {
                     MoveTowardsY(spring.CenterY + 5f, 4f, null);
-                    Speed.X = 220f;
+                    Speed.X = slowFall ? 160f : 220f;
                     Speed.Y = -80f;
                     noGravityTimer = 0.1f;
                     return true;
                 }
                 if (spring.Orientation == Spring.Orientations.WallRight && Speed.X >= 0f) {
                     MoveTowardsY(spring.CenterY + 5f, 4f, null);
-                    Speed.X = -220f;
+                    Speed.X = slowFall ? -160f : -220f;
                     Speed.Y = -80f;
                     noGravityTimer = 0.1f;
                     return true;
