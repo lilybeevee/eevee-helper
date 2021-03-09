@@ -62,8 +62,6 @@ namespace Celeste.Mod.EeveeHelper.Entities {
 
         private static IEnumerator Player_BoostCoroutine(On.Celeste.Player.orig_BoostCoroutine orig, Player self) {
             if (self.CurrentBooster is PatientBooster booster) {
-                yield return 0.25f;
-                booster.Sprite.Play("hold");
                 yield break;
             }
 

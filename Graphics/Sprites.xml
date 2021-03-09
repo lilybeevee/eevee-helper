@@ -2,7 +2,7 @@
   <EeveeHelper_patientBooster path="objects/EeveeHelper/patientBooster/" start="loop">
     <Justify x="0.5" y="0.5"/>
     <Loop id="loop" path="booster" delay="0.1" frames="0-4"/>
-    <Loop id="inside" path="booster" delay="0.1" frames="5-8"/>
+    <Anim id="inside" path="booster" delay="0.1" frames="5-8" goto="hold"/>
     <Loop id="spin" path="booster" delay="0.06" frames="18-25"/>
     <Anim id="pop" path="booster" delay="0.08" frames="9-17"/>
     <Loop id="hold" path="booster" delay="0.1" frames="26-29"/>
@@ -10,7 +10,7 @@
   <EeveeHelper_patientBoosterRed path="objects/EeveeHelper/patientBooster/" start="loop">
     <Justify x="0.5" y="0.5"/>
     <Loop id="loop" path="boosterRed" delay="0.1" frames="0-4"/>
-    <Loop id="inside" path="boosterRed" delay="0.1" frames="5-8"/>
+    <Anim id="inside" path="boosterRed" delay="0.1" frames="5-8" goto="hold"/>
     <Loop id="spin" path="boosterRed" delay="0.06" frames="18-25"/>
     <Anim id="pop" path="boosterRed" delay="0.08" frames="9-17"/>
     <Loop id="hold" path="boosterRed" delay="0.1" frames="26-29"/>
