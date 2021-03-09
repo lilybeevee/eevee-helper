@@ -20,6 +20,7 @@ namespace Celeste.Mod.EeveeHelper {
             EntityContainer.Load();
             HoldableTiles.Load();
             HoldableContainer.Load();
+            PatientBooster.Load();
         }
 
         public override void Unload() {
@@ -28,6 +29,7 @@ namespace Celeste.Mod.EeveeHelper {
             EntityContainer.Unload();
             HoldableTiles.Unload();
             HoldableContainer.Unload();
+            PatientBooster.Unload();
         }
     }
 }
