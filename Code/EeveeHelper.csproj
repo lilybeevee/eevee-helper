@@ -64,6 +64,7 @@
     <Compile Include="Components\EntityContainer.cs" />
     <Compile Include="EeveeHelperModule.cs" />
     <Compile Include="EeveeUtils.cs" />
+    <Compile Include="Entities\FloatyContainer.cs" />
     <Compile Include="Entities\HoldableContainer.cs" />
     <Compile Include="Entities\AttachedContainer.cs" />
     <Compile Include="Entities\HoldableTiles.cs" />

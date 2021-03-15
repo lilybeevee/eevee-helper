@@ -2,11 +2,14 @@ module EeveeHelperEntityContainers
 
 using ..Ahorn, Maple
 
-@mapdef Entity "EeveeHelper/HoldableContainer" HoldableContainer(x::Integer, y::Integer, width::Integer=8, height::Integer=8, whitelist::String="", 
-    gravity::Bool=true, holdable::Bool=true, fitContained::Bool=true, noDuplicate::Bool=false, slowFall::Bool=false, slowRun::Bool=true, destroyable::Bool=true)
+@mapdef Entity "EeveeHelper/HoldableContainer" HoldableContainer(x::Integer, y::Integer, width::Integer=8, height::Integer=8, whitelist::String="", fitContained::Bool=true,
+    gravity::Bool=true, holdable::Bool=true, noDuplicate::Bool=false, slowFall::Bool=false, slowRun::Bool=true, destroyable::Bool=true)
 @mapdef Entity "EeveeHelper/AttachedContainer" AttachedContainer(x::Integer, y::Integer, width::Integer=8, height::Integer=8, whitelist::String="", attachTo::String="")
+@mapdef Entity "EeveeHelper/FloatyContainer" FloatyContainer(x::Integer, y::Integer, width::Integer=8, height::Integer=8, whitelist::String="",
+    floatSpeed::Number=1.0, floatMove::Number=4.0, pushSpeed::Number=1.0, pushMove::Number=8.0, sinkSpeed::Number=1.0, sinkMove::Number=12.0,
+    disableSpawnOffset::Bool=false, disablePush::Bool=false)
 
-const containerUnion = Union{HoldableContainer, AttachedContainer}
+const containerUnion = Union{HoldableContainer, AttachedContainer, FloatyContainer}
 
 const placements = Ahorn.PlacementDict(
     "Entity Container (Holdable)\n(Eevee Helper)" => Ahorn.EntityPlacement(
@@ -28,11 +31,17 @@ const placements = Ahorn.PlacementDict(
     "Entity Container (Attached)\n(Eevee Helper)" => Ahorn.EntityPlacement(
         AttachedContainer,
         "rectangle"
+    ),
+    "Entity Container (Floaty)\n(Eevee Helper)" => Ahorn.EntityPlacement(
+        FloatyContainer,
+        "rectangle"
     )
 )
 
 Ahorn.minimumSize(entity::containerUnion) = 8, 8
 Ahorn.resizable(entity::containerUnion) = true, true
+
+Ahorn.editingOrder(entity::FloatyContainer) = ["x", "y", "width", "height", "floatMove", "floatSpeed", "pushMove", "pushSpeed", "sinkMove", "sinkSpeed", "whitelist"]
 
 Ahorn.nodeLimits(entity::AttachedContainer) = 0, 1
 
