@@ -8,8 +8,10 @@ using ..Ahorn, Maple
 @mapdef Entity "EeveeHelper/FloatyContainer" FloatyContainer(x::Integer, y::Integer, width::Integer=8, height::Integer=8, whitelist::String="",
     floatSpeed::Number=1.0, floatMove::Number=4.0, pushSpeed::Number=1.0, pushMove::Number=8.0, sinkSpeed::Number=1.0, sinkMove::Number=12.0,
     disableSpawnOffset::Bool=false, disablePush::Bool=false)
+@mapdef Entity "EeveeHelper/SMWTrackContainer" SMWTrackContainer(x::Integer, y::Integer, width::Integer=8, height::Integer=8, whitelist::String="", fitContained::Bool=true,
+    moveSpeed::Number=100.0, fallSpeed::Number=200.0, gravity::Number=200.0, direction::String="Right", flag::String="", notFlag::Bool=false, startOnTouch::Bool=false)
 
-const containerUnion = Union{HoldableContainer, AttachedContainer, FloatyContainer}
+const containerUnion = Union{HoldableContainer, AttachedContainer, FloatyContainer, SMWTrackContainer}
 
 const placements = Ahorn.PlacementDict(
     "Entity Container (Holdable)\n(Eevee Helper)" => Ahorn.EntityPlacement(
@@ -35,6 +37,10 @@ const placements = Ahorn.PlacementDict(
     "Entity Container (Floaty)\n(Eevee Helper)" => Ahorn.EntityPlacement(
         FloatyContainer,
         "rectangle"
+    ),
+    "Entity Container (SMW Track)\n(Eevee Helper)" => Ahorn.EntityPlacement(
+        SMWTrackContainer,
+        "rectangle"
     )
 )
 
@@ -42,6 +48,9 @@ Ahorn.minimumSize(entity::containerUnion) = 8, 8
 Ahorn.resizable(entity::containerUnion) = true, true
 
 Ahorn.editingOrder(entity::FloatyContainer) = ["x", "y", "width", "height", "floatMove", "floatSpeed", "pushMove", "pushSpeed", "sinkMove", "sinkSpeed", "whitelist"]
+Ahorn.editingOptions(entity::SMWTrackContainer) = Dict{String, Any}(
+    "direction" => ["Left", "Right"]
+)
 
 Ahorn.nodeLimits(entity::AttachedContainer) = 0, 1
 

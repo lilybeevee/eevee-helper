@@ -58,8 +58,7 @@ namespace Celeste.Mod.EeveeHelper.Components {
 
         public override void EntityRemoved(Scene scene) {
             base.EntityRemoved(scene);
-            foreach (var entity in Contained)
-                entity.RemoveSelf();
+            RemoveContained();
         }
 
         public override void Update() {
@@ -172,6 +171,15 @@ namespace Celeste.Mod.EeveeHelper.Components {
             action();
             foreach (var entity in Contained)
                 entity.Collidable = lastCollidable[entity];
+        }
+
+        public void RemoveContained() {
+            foreach (var entity in Contained) {
+                if (entity is Platform platform)
+                    platform.DestroyStaticMovers();
+                entity.RemoveSelf();
+            }
+            Contained.Clear();
         }
 
 

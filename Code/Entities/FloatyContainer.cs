@@ -46,7 +46,6 @@ namespace Celeste.Mod.EeveeHelper.Entities {
                 sineWave = Calc.Random.NextFloat((float)Math.PI * 2f);
 
             Add(Container = new EntityContainer {
-                FitContained = false,
                 IsValid = IsValid
             });
 

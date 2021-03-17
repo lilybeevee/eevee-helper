@@ -347,9 +347,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             Add(tween);
             yield return 0.2f;
             Container.FitContained = false;
-            foreach (var entity in Container.Contained)
-                entity.RemoveSelf();
-            Container.Contained.Clear();
+            Container.RemoveContained();
             var tween2 = Tween.Create(Tween.TweenMode.Oneshot, null, 0.1f, true);
             tween2.OnUpdate = (t) => whiteAlpha = (1f - t.Eased);
             Add(tween2);

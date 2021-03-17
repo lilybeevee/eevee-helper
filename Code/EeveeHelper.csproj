@@ -71,6 +71,10 @@
     <Compile Include="Entities\PatientBooster.cs" />
     <Compile Include="Entities\RoomChest.cs" />
     <Compile Include="Entities\RoomChestExit.cs" />
+    <Compile Include="Entities\SMWPlatform.cs" />
+    <Compile Include="Entities\SMWTrack.cs" />
+    <Compile Include="Entities\SMWTrackContainer.cs" />
+    <Compile Include="Components\SMWTrackMover.cs" />
     <Compile Include="MiscHooks.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
