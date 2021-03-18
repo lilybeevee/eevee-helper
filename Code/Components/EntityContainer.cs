@@ -27,6 +27,16 @@ namespace Celeste.Mod.EeveeHelper.Components {
 
         public EntityContainer() : base(true, true) { }
 
+        public override void Added(Entity entity) {
+            base.Added(entity);
+            entity.Add(new TransitionListener {
+                OnOutBegin = () => {
+                    if (!Entity.TagCheck(Tags.Persistent))
+                        Contained.RemoveAll(e => e.TagCheck(Tags.Persistent));
+                }
+            });
+        }
+
         public override void EntityAwake() {
             base.EntityAwake();
             foreach (var entity in Scene.Entities) {

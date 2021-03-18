@@ -3,7 +3,8 @@ module EeveeHelperSMWPlatform
 using ..Ahorn, Maple
 
 @mapdef Entity "EeveeHelper/SMWPlatform" SMWPlatform(x::Integer, y::Integer, width::Integer=40, height::Integer=8, texturePath::String="objects/EeveeHelper/smwPlatform",
-    moveSpeed::Number=100.0, fallSpeed::Number=200.0, gravity::Number=200.0, direction::String="Right", flag::String="", notFlag::Bool=false, startOnTouch::Bool=false)
+    moveSpeed::Number=100.0, fallSpeed::Number=200.0, gravity::Number=200.0, direction::String="Right", flag::String="", notFlag::Bool=false, startOnTouch::Bool=true,
+    disableBoost::Bool=false)
 
 const placements = Ahorn.PlacementDict(
     "SMW Platform (Eevee Helper)" => Ahorn.EntityPlacement(

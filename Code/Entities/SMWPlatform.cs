@@ -14,6 +14,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
         private string flag;
         private bool notFlag;
         private bool startOnTouch;
+        private bool disableBoost;
 
         public SMWTrackMover Mover;
 
@@ -29,6 +30,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             flag = data.Attr("flag");
             notFlag = data.Bool("notFlag");
             startOnTouch = data.Bool("startOnTouch");
+            disableBoost = data.Bool("disableBoost");
 
             Add(Mover = new SMWTrackMover {
                 Direction = data.Enum<Facings>("direction"),
@@ -38,7 +40,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
                 GetPosition = () => ExactPosition,
                 SetPosition = (pos, move) => {
                     moved += Vector2.Distance(pos, ExactPosition) / 12f;
-                    MoveTo(pos, move);
+                    MoveTo(pos, EeveeUtils.GetTrackBoost(move, disableBoost));
                 }
             });
 

@@ -15,6 +15,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
         private string flag;
         private bool notFlag;
         private bool startOnTouch;
+        private bool disableBoost;
 
         public EntityContainer Container;
         public SMWTrackMover Mover;
@@ -29,6 +30,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             flag = data.Attr("flag");
             notFlag = data.Bool("notFlag");
             startOnTouch = data.Bool("startOnTouch");
+            disableBoost = data.Bool("disableBoost");
 
             Add(Container = new EntityContainer {
                 FitContained = data.Bool("fitContained"),
@@ -43,7 +45,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
                 GetPosition = () => Center,
                 SetPosition = (pos, move) => Container.DoMoveAction(() => Center = pos, (entity, delta) => {
                     if (entity is Platform platform) {
-                        platform.MoveTo(Position + delta, move);
+                        platform.MoveTo(Position + delta, EeveeUtils.GetTrackBoost(move, disableBoost));
                     } else {
                         entity.Position = Position + delta;
                     }

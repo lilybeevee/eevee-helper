@@ -9,7 +9,8 @@ using ..Ahorn, Maple
     floatSpeed::Number=1.0, floatMove::Number=4.0, pushSpeed::Number=1.0, pushMove::Number=8.0, sinkSpeed::Number=1.0, sinkMove::Number=12.0,
     disableSpawnOffset::Bool=false, disablePush::Bool=false)
 @mapdef Entity "EeveeHelper/SMWTrackContainer" SMWTrackContainer(x::Integer, y::Integer, width::Integer=8, height::Integer=8, whitelist::String="", fitContained::Bool=true,
-    moveSpeed::Number=100.0, fallSpeed::Number=200.0, gravity::Number=200.0, direction::String="Right", flag::String="", notFlag::Bool=false, startOnTouch::Bool=false)
+    moveSpeed::Number=100.0, fallSpeed::Number=200.0, gravity::Number=200.0, direction::String="Right", flag::String="", notFlag::Bool=false, startOnTouch::Bool=false,
+    disableBoost::Bool=false)
 
 const containerUnion = Union{HoldableContainer, AttachedContainer, FloatyContainer, SMWTrackContainer}
 
