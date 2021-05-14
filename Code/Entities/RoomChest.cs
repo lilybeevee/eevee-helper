@@ -195,6 +195,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             Add(Alarm.Create(Alarm.AlarmMode.Oneshot, () => {
                 level.DoScreenWipe(false, () => {
                     var player = level.Tracker.GetEntity<Player>();
+                    var dashes = player.Dashes;
 
                     LastChests.Push(this);
                     LastRooms.Push(level.Session.Level);
@@ -238,6 +239,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
 
                     player.Visible = true;
                     player.Position = level.DefaultSpawnPoint;
+                    player.Dashes = dashes;
 
                     player.Leader.Followers = lastFollowers;
                     player.Leader.PastPoints.Clear();
@@ -274,16 +276,18 @@ namespace Celeste.Mod.EeveeHelper.Entities {
 
         private void OnCarry(Vector2 target) {
             Position = target;
-            ChestLid.MoveTo(Position);
+            ChestLid.MoveTo(ExactPosition);
         }
 
         private void OnPickup() {
             Speed = Vector2.Zero;
             AddTag(Tags.Persistent);
+            ChestLid.AddTag(Tags.Persistent);
         }
 
         private void OnRelease(Vector2 force) {
             RemoveTag(Tags.Persistent);
+            ChestLid.RemoveTag(Tags.Persistent);
             if (force.X != 0f && force.Y == 0f) {
                 force.Y = -0.4f;
             }
@@ -335,11 +339,22 @@ namespace Celeste.Mod.EeveeHelper.Entities {
         private static MethodInfo m_Tracker_ComponentRemoved = typeof(Tracker).GetMethod("ComponentRemoved", BindingFlags.NonPublic | BindingFlags.Instance);
 
         public static void Load() {
+            On.Celeste.Level.LoadLevel += Level_LoadLevel;
             IL.Monocle.EntityList.UpdateLists += EntityList_UpdateLists;
         }
 
         public static void Unload() {
+            On.Celeste.Level.LoadLevel -= Level_LoadLevel;
             IL.Monocle.EntityList.UpdateLists -= EntityList_UpdateLists;
+        }
+
+        private static void Level_LoadLevel(On.Celeste.Level.orig_LoadLevel orig, Level self, Player.IntroTypes playerIntro, bool isFromLoader) {
+            if (isFromLoader) {
+                LastEntities.Clear();
+                LastChests.Clear();
+                LastRooms.Clear();
+            }
+            orig(self, playerIntro, isFromLoader);
         }
 
         private static void EntityList_UpdateLists(MonoMod.Cil.ILContext il) {

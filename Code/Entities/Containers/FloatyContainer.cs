@@ -11,8 +11,7 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.EeveeHelper.Entities {
     [CustomEntity("EeveeHelper/FloatyContainer")]
     public class FloatyContainer : Entity {
-        public EntityContainer Container;
-        private string[] whitelist;
+        public EntityContainerMover Container;
         private bool disablePush;
         private float floatSpeed;
         private float floatMove;
@@ -32,7 +31,6 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             Collider = new Hitbox(data.Width, data.Height);
             Depth = Depths.Top - 10;
 
-            whitelist = data.Attr("whitelist").Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
             disablePush = data.Bool("disablePush");
 
             floatSpeed = data.Float("floatSpeed", 1f);
@@ -45,8 +43,8 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             if (!data.Bool("disableSpawnOffset"))
                 sineWave = Calc.Random.NextFloat((float)Math.PI * 2f);
 
-            Add(Container = new EntityContainer {
-                IsValid = IsValid
+            Add(Container = new EntityContainerMover(data, fitContained: false) {
+                DefaultIgnored = e => e is FloatyContainer
             });
 
             anchorPosition = Position;
@@ -76,15 +74,11 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             }
         }
 
-        private bool IsValid(Entity entity) {
-            if (whitelist.Length == 0)
-                return !(entity is FloatyContainer || entity is Player || entity is SolidTiles || entity is BackgroundTiles || entity is Decal || entity is Trigger);
-            else
-                return whitelist.Contains(entity.GetType().Name);
-        }
-
         public override void Update() {
             base.Update();
+
+            if (!Container.Attached)
+                return;
 
             if (HasRider())
                 sinkTimer = 0.3f;

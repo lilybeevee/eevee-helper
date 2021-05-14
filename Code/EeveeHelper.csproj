@@ -47,6 +47,10 @@
       <HintPath>..\..\..\Mono.Cecil.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="MonoMod.RuntimeDetour">
+      <HintPath>..\..\..\MonoMod.RuntimeDetour.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="MonoMod.Utils">
       <HintPath>..\..\..\MonoMod.Utils.dll</HintPath>
       <Private>False</Private>
@@ -62,18 +66,22 @@
   <ItemGroup>
     <Compile Include="Components\DepthPartner.cs" />
     <Compile Include="Components\EntityContainer.cs" />
+    <Compile Include="Components\EntityContainerMover.cs" />
     <Compile Include="EeveeHelperModule.cs" />
     <Compile Include="EeveeUtils.cs" />
-    <Compile Include="Entities\FloatyContainer.cs" />
-    <Compile Include="Entities\HoldableContainer.cs" />
-    <Compile Include="Entities\AttachedContainer.cs" />
+    <Compile Include="Entities\Containers\FloatyContainer.cs" />
+    <Compile Include="Entities\Containers\HoldableContainer.cs" />
+    <Compile Include="Entities\Containers\AttachedContainer.cs" />
     <Compile Include="Entities\HoldableTiles.cs" />
+    <Compile Include="Entities\Modifiers\FlagToggleModifier.cs" />
+    <Compile Include="Entities\Modifiers\NoCollideModifier.cs" />
+    <Compile Include="Entities\Modifiers\CollidableModifier.cs" />
     <Compile Include="Entities\PatientBooster.cs" />
     <Compile Include="Entities\RoomChest.cs" />
     <Compile Include="Entities\RoomChestExit.cs" />
     <Compile Include="Entities\SMWPlatform.cs" />
     <Compile Include="Entities\SMWTrack.cs" />
-    <Compile Include="Entities\SMWTrackContainer.cs" />
+    <Compile Include="Entities\Containers\SMWTrackContainer.cs" />
     <Compile Include="Components\SMWTrackMover.cs" />
     <Compile Include="MiscHooks.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

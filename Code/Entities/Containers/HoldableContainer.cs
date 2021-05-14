@@ -14,14 +14,18 @@ namespace Celeste.Mod.EeveeHelper.Entities {
     [Tracked]
     [CustomEntity("EeveeHelper/HoldableContainer")]
     public class HoldableContainer : Actor {
-        private string[] whitelist;
+        public bool HasGravity {
+            get => hasGravity && Container?.Contained.Count > 0;
+            set => hasGravity = value;
+        }
+
         private bool hasGravity;
         private bool holdable;
         private bool noDuplicate;
         private bool destroyable;
 
         public EntityID ID;
-        public EntityContainer Container;
+        public EntityContainerMover Container;
         public Vector2 Speed;
         public Holdable Hold;
         private Dictionary<Entity, bool> wasCollidable = new Dictionary<Entity, bool>();
@@ -34,7 +38,6 @@ namespace Celeste.Mod.EeveeHelper.Entities {
         private Vector2 holdTarget = Vector2.Zero;
 
         public HoldableContainer(EntityData data, Vector2 offset, EntityID id) : base(data.Position + offset + new Vector2(data.Width / 2f, data.Height)) {
-            whitelist = data.Attr("whitelist").Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
             holdable = data.Bool("holdable");
             hasGravity = data.Bool("gravity");
             noDuplicate = data.Bool("noDuplicate");
@@ -44,15 +47,14 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             ID = id;
             Collider = new Hitbox(data.Width, data.Height);
             Collider.Position = new Vector2(-Width / 2f, -Height);
-            AllowPushing = hasGravity;
+            AllowPushing = HasGravity;
             Depth = Depths.Top - 10;
 
-            Add(Container = new EntityContainer {
-                FitContained = data.Bool("fitContained"),
-                IsValid = IsValid,
+            Add(Container = new EntityContainerMover(data) {
+                DefaultIgnored = e => e is HoldableContainer,
                 OnFit = OnFit,
                 OnPreMove = () => AllowPushing = false,
-                OnPostMove = () => AllowPushing = hasGravity,
+                OnPostMove = () => AllowPushing = HasGravity,
             });
 
             if (holdable) {
@@ -87,13 +89,6 @@ namespace Celeste.Mod.EeveeHelper.Entities {
                     RemoveSelf();
                 }
             }
-        }
-
-        private bool IsValid(Entity entity) {
-            if (whitelist.Length == 0)
-                return !(entity is HoldableContainer || entity is Player || entity is SolidTiles || entity is BackgroundTiles || entity is Decal || entity is Trigger);
-            else
-                return whitelist.Contains(entity.GetType().Name);
         }
 
         private void OnPickup() {
@@ -200,11 +195,18 @@ namespace Celeste.Mod.EeveeHelper.Entities {
         public override void Update() {
             base.Update();
 
+            AllowPushing = HasGravity;
+            Collidable = !destroyed && Container.Contained.Count > 0;
+
+            if (!Collidable && holdable && Hold.IsHeld) {
+                var speed = Hold.Holder.Speed;
+                Hold.Holder.Drop();
+                Speed = speed * 0.5f;
+                Input.Rumble(RumbleStrength.Medium, RumbleLength.Medium);
+            }
+
             if (!destroyed) {
-                if (Container.Contained.Count == 0) {
-                    RemoveSelf();
-                    return;
-                }
+                if (Container.Contained.Count == 0) return;
 
                 if (destroyable) {
                     foreach (SeekerBarrier barrier in Scene.Tracker.GetEntities<SeekerBarrier>()) {
@@ -309,7 +311,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
                         Speed.Y = Calc.Approach(Speed.Y, slowFall ? 30f : 200f, yAccel * Engine.DeltaTime);
                     }
                 }
-                if (!hasGravity)
+                if (!HasGravity)
                     Speed.Y = 0;
                 MoveH(Speed.X * Engine.DeltaTime, OnCollideH, null);
                 MoveV(Speed.Y * Engine.DeltaTime, OnCollideV, null);
@@ -333,11 +335,11 @@ namespace Celeste.Mod.EeveeHelper.Entities {
         }
 
         public override bool IsRiding(Solid solid) {
-            return hasGravity && !Container.Contained.Contains(solid) && base.IsRiding(solid);
+            return HasGravity && !Container.Contained.Contains(solid) && base.IsRiding(solid);
         }
 
         public override bool IsRiding(JumpThru jumpThru) {
-            return hasGravity && !Container.Contained.Contains(jumpThru) && base.IsRiding(jumpThru);
+            return HasGravity && !Container.Contained.Contains(jumpThru) && base.IsRiding(jumpThru);
         }
 
         private IEnumerator DestroyRoutine() {
@@ -393,76 +395,6 @@ namespace Celeste.Mod.EeveeHelper.Entities {
                 }
             }
             return false;
-        }
-
-
-        public static void Load() {
-            On.Celeste.Actor.MoveHExact += Actor_MoveHExact;
-            On.Celeste.Actor.MoveVExact += Actor_MoveVExact;
-            On.Celeste.Actor.OnGround_int += Actor_OnGround_int;
-        }
-
-        public static void Unload() {
-            On.Celeste.Actor.MoveHExact -= Actor_MoveHExact;
-            On.Celeste.Actor.MoveVExact -= Actor_MoveVExact;
-            On.Celeste.Actor.OnGround_int -= Actor_OnGround_int;
-        }
-
-        private static bool Actor_MoveHExact(On.Celeste.Actor.orig_MoveHExact orig, Actor self, int moveH, Collision onCollide, Solid pusher) {
-            if (self is HoldableContainer container) {
-                var collidable = self.Collidable;
-                var result = true;
-                container.Container.DoMoveAction(() => {
-                    result = orig(self, moveH, onCollide, pusher);
-                }, (entity, offset) => {
-                    /*if (entity is Platform platform) {
-                        platform.MoveToX(self.Position.X + offset.X, container.Speed.X);
-                        platform.MoveStaticMovers(Vector2.UnitX * ((self.Position + offset) - entity.Position).X);
-                    }
-                    entity.Position.X = self.Position.X + offset.X;*/
-                    if (entity is Platform platform) {
-                        platform.MoveToX(self.Position.X + offset.X, platform.LiftSpeed.X + container.Speed.X);
-                    } else {
-                        entity.Position.X = self.Position.X + offset.X;
-                    }
-                });
-                return result;
-            }
-            return orig(self, moveH, onCollide, pusher);
-        }
-
-        private static bool Actor_MoveVExact(On.Celeste.Actor.orig_MoveVExact orig, Actor self, int moveV, Collision onCollide, Solid pusher) {
-            if (self is HoldableContainer container) {
-                var result = true;
-                var collidable = self.Collidable;
-                container.Container.DoMoveAction(() => {
-                    result = orig(self, moveV, onCollide, pusher);
-                }, (entity, offset) => {
-                    /*if (entity is Platform platform) {
-                        platform.MoveToY(self.Position.Y + offset.Y, container.Speed.Y);
-                        platform.MoveStaticMovers(Vector2.UnitY * ((self.Position + offset) - entity.Position).Y);
-                    }
-                    entity.Position.Y = self.Position.Y + offset.Y;*/
-                    if (entity is Platform platform) {
-                        platform.MoveToY(self.Position.Y + offset.Y, platform.LiftSpeed.Y + container.Speed.Y);
-                    } else {
-                        entity.Position.Y = self.Position.Y + offset.Y;
-                    }
-                });
-                return result;
-            }
-            return orig(self, moveV, onCollide, pusher);
-        }
-
-        private static bool Actor_OnGround_int(On.Celeste.Actor.orig_OnGround_int orig, Actor self, int downCheck) {
-            if (self is HoldableContainer container) {
-                var result = true;
-                container.Container.DoIgnoreCollision(() => {
-                    result = orig(self, downCheck);
-                });
-                return result;
-            }
-            return orig(self, downCheck);
         }
     }
 }

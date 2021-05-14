@@ -22,6 +22,8 @@ namespace Celeste.Mod.EeveeHelper.Entities {
                 Add(Alarm.Create(Alarm.AlarmMode.Oneshot, () => {
                     level.DoScreenWipe(false, () => {
                         level.OnEndOfFrame += () => {
+                            var dashes = player.Dashes;
+
                             player.CleanUpTriggers();
 
                             Holdable held = null;
@@ -59,6 +61,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
 
                             var lastChest = RoomChest.LastChests.Pop();
                             player.Position = lastChest.BottomCenter - Vector2.UnitY * 2f;
+                            player.Dashes = dashes;
 
                             player.Leader.Followers = lastFollowers;
                             player.Leader.PastPoints.Clear();
@@ -99,7 +102,15 @@ namespace Celeste.Mod.EeveeHelper.Entities {
                         };
                     });
                 }, 0.2f, true));
-            }));
+            }) {
+                PlayerMustBeFacing = false
+            });
+        }
+
+        public override void Added(Scene scene) {
+            base.Added(scene);
+            if (RoomChest.LastRooms.Count == 0)
+                RemoveSelf();
         }
 
         public override void Render() {

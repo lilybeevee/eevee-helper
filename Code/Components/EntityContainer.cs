@@ -8,100 +8,167 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Celeste.Mod.EeveeHelper.Components {
+    [Tracked(true)]
     public class EntityContainer : Component {
-        private static HashSet<string> IgnoredAnchors = new HashSet<string>() {
-            "Position", "ExactPosition", "TopLeft", "TopCenter", "TopRight", "Center", "CenterLeft", "CenterRight", "BottomLeft", "BottomCenter", "BottomRight"
-        };
-        private static HashSet<string> CommonAnchors = new HashSet<string>() {
-            "anchor", "anchorPosition", "start", "startPosition"
-        };
+        public enum ContainMode {
+            FlagChanged,
+            RoomStart,
+            Always
+        }
 
         public List<Entity> Contained = new List<Entity>();
-        public Vector4 Padding;
+        public List<Tuple<string, int>> Blacklist;
+        public List<Tuple<string, int>> Whitelist;
+        public ContainMode Mode;
+        public string ContainFlag;
+        public bool NotFlag;
 
-        public bool FitContained;
         public Func<Entity, bool> IsValid;
-        public Action<Vector2, float, float> OnFit;
-        public Action OnPreMove;
-        public Action OnPostMove;
+        public Func<Entity, bool> DefaultIgnored;
+        public Action<Entity> OnAttach;
+        public Action<Entity> OnDetach;
+
+        public bool Attached;
+        public bool CollideWithContained;
+
+        private List<Entity> containedSaved = new List<Entity>();
 
         public EntityContainer() : base(true, true) { }
 
-        public override void Added(Entity entity) {
-            base.Added(entity);
-            entity.Add(new TransitionListener {
-                OnOutBegin = () => {
-                    if (!Entity.TagCheck(Tags.Persistent))
-                        Contained.RemoveAll(e => e.TagCheck(Tags.Persistent));
-                }
-            });
+        public EntityContainer(EntityData data) : this() {
+            Whitelist = ParseList(data.Attr("whitelist"));
+            Blacklist = ParseList(data.Attr("blacklist"));
+            Mode = data.Enum("containMode", ContainMode.FlagChanged);
+            var flag = EeveeUtils.ParseFlagAttr(data.Attr("containFlag"));
+            ContainFlag = flag.Item1;
+            NotFlag = flag.Item2;
         }
 
         public override void EntityAwake() {
             base.EntityAwake();
-            foreach (var entity in Scene.Entities) {
-                if (ContainsEntity(entity)) {
-                    var valid = IsValid?.Invoke(entity) ?? !(entity == Entity || entity is Player || entity is SolidTiles || entity is BackgroundTiles || entity is Decal || entity is Trigger);
 
-                    if (valid) {
-                        Contained.Add(entity);
+            Attached = string.IsNullOrEmpty(ContainFlag) || SceneAs<Level>().Session.GetFlag(ContainFlag) != NotFlag;
 
-                        var data = new DynamicData(entity);
-                        if (!data.TryGet<List<string>>("entityContainerAnchors", out _)) {
-                            var anchors = new List<string>();
-                            foreach (var pair in data)
-                                if (pair.Value is Vector2 vector && !IgnoredAnchors.Contains(pair.Key) && (vector == EeveeUtils.GetPosition(entity) || CommonAnchors.Contains(pair.Key))) {
-                                    Console.WriteLine($"Adding anchor: {pair.Key}");
-                                    anchors.Add(pair.Key);
-                                }
-
-                            if (anchors.Count > 0)
-                                data.Set("entityContainerAnchors", anchors);
-                        }
-                    }
-                }
-            }
-
-            var bounds = GetContainedBounds();
-            Padding = new Vector4(Entity.Left - bounds.X, Entity.Top - bounds.Y, Entity.Right - (bounds.X + bounds.Width), Entity.Bottom - (bounds.Y + bounds.Height));
-        }
-
-        public override void EntityRemoved(Scene scene) {
-            base.EntityRemoved(scene);
-            RemoveContained();
+            if (Attached)
+                AttachInside(true);
         }
 
         public override void Update() {
             base.Update();
             Cleanup();
-            if (FitContained) {
-                var bounds = GetContainedBounds();
-                var targetPos = new Vector2(bounds.X + Padding.X, bounds.Y + Padding.Y);
-                var targetCorner = new Vector2(bounds.X + bounds.Width + Padding.Z, bounds.Y + bounds.Height + Padding.W);
-                var targetWidth = targetCorner.X - targetPos.X;
-                var targetHeight = targetCorner.Y - targetPos.Y;
-                if (Entity.TopLeft != targetPos || Entity.BottomRight != targetCorner) {
-                    if (OnFit != null) {
-                        OnFit(targetPos, targetWidth, targetHeight);
-                    } else {
-                        Entity.Position = targetPos;
-                        Entity.Collider.Width = targetWidth;
-                        Entity.Collider.Height = targetHeight;
-                    }
+
+            var newAttached = string.IsNullOrEmpty(ContainFlag) || SceneAs<Level>().Session.GetFlag(ContainFlag) != NotFlag;
+
+            if (Mode != ContainMode.Always) {
+                if (newAttached != Attached) {
+                    Attached = newAttached;
+
+                    if (Attached)
+                        AttachInside();
+                    else
+                        DetachAll();
+                }
+            } else {
+                var attachChanged = newAttached != Attached;
+
+                Attached = newAttached;
+
+                if (Attached) {
+                    DetachOutside();
+                    AttachInside();
+                } else if (attachChanged) {
+                    DetachAll();
                 }
             }
         }
 
-        private void Cleanup() {
+        protected virtual void AddContained(Entity entity) {
+            Contained.Add(entity);
+        }
+
+        protected List<Tuple<string, int>> ParseList(string list) {
+            return list.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(entry => {
+                var split = entry.Split(':');
+                if (split.Length >= 2 && int.TryParse(split[1], out var count))
+                    return Tuple.Create(split[0], count);
+                else
+                    return Tuple.Create(entry, -1);
+            }).ToList();
+        }
+
+        protected virtual bool WhitelistCheck(Entity entity, int count) {
+            if (Blacklist.Any(pair => pair.Item1 == entity.GetType().Name && (pair.Item2 == -1 || count == pair.Item2)))
+                return false;
+            if (Whitelist.Count == 0)
+                return !((DefaultIgnored?.Invoke(entity) ?? false) || entity is Player || entity is SolidTiles || entity is BackgroundTiles || entity is Decal || entity is Trigger);
+            else
+                return Whitelist.Any(pair => pair.Item1 == entity.GetType().Name && (pair.Item2 == -1 || count == pair.Item2));
+        }
+
+        protected virtual void AttachInside(bool first = false) {
+            if (first || Mode != ContainMode.RoomStart) {
+                var counts = new Dictionary<Type, int>();
+                foreach (var entity in Scene.Entities) {
+                    if (entity != Entity && (Mode != ContainMode.Always || !Contained.Contains(entity)) && ContainsEntity(entity) && (IsValid?.Invoke(entity) ?? true)) {
+                        if (!counts.ContainsKey(entity.GetType()))
+                            counts.Add(entity.GetType(), 0);
+
+                        if (WhitelistCheck(entity, ++counts[entity.GetType()])) {
+                            AddContained(entity);
+                            OnAttach?.Invoke(entity);
+                        }
+                    }
+                }
+            } else {
+                Contained = new List<Entity>(containedSaved);
+                Cleanup();
+                foreach (var entity in Contained)
+                    OnAttach?.Invoke(entity);
+                containedSaved.Clear();
+            }
+        }
+
+        protected virtual void DetachAll() {
+            var lastContained = new List<Entity>(Contained);
+            if (Mode == ContainMode.RoomStart)
+                containedSaved = lastContained;
+
+            Contained.Clear();
+            
+            foreach (var entity in lastContained)
+                OnDetach?.Invoke(entity);
+        }
+
+        protected virtual void DetachOutside() {
+            var toRemove = new List<Entity>();
+            foreach (var entity in Contained) {
+                if (!ContainsEntity(entity)) {
+                    toRemove.Add(entity);
+                }
+            }
+            foreach (var entity in toRemove) {
+                Console.WriteLine($"Detaching {entity.GetType().Name}");
+                Contained.Remove(entity);
+                OnDetach?.Invoke(entity);
+            }
+
+        }
+
+        protected void Cleanup() {
             Contained.RemoveAll(e => e.Scene == null);
         }
 
         public bool ContainsEntity(Entity entity) {
             if (entity.Collider != null) {
                 var collidable = entity.Collidable;
+                var parentCollidable = Entity.Collidable;
                 entity.Collidable = true;
+                Entity.Collidable = true;
+                CollideWithContained = true;
                 var result = Entity.CollideCheck(entity);
+                CollideWithContained = false;
                 entity.Collidable = collidable;
+                Entity.Collidable = parentCollidable;
                 return result;
             } else {
                 return entity.X >= Entity.Left && entity.Y >= Entity.Top && entity.X <= Entity.Right && entity.Y <= Entity.Bottom;
@@ -127,62 +194,6 @@ namespace Celeste.Mod.EeveeHelper.Components {
             return new Rectangle((int)topLeft.X, (int)topLeft.Y, (int)(bottomRight.X - topLeft.X), (int)(bottomRight.Y - topLeft.Y));
         }
 
-        public void DoMoveAction(Action moveAction, Action<Entity, Vector2> moveFinalizer = null) {
-            Cleanup();
-            var anchorOffsets = new Dictionary<Entity, Dictionary<string, Vector2>>();
-            var offsets = new Dictionary<Entity, Vector2>();
-            var collidable = new Dictionary<Entity, bool>();
-            var startPosition = EeveeUtils.GetPosition(Entity);
-            foreach (var entity in Contained) {
-                var data = new DynamicData(entity);
-                var anchorNames = data.Get<List<string>>("holdableContainerAnchors");
-                if (anchorNames != null) {
-                    var currentAnchors = new Dictionary<string, Vector2>();
-                    foreach (var name in anchorNames)
-                        currentAnchors.Add(name, data.Get<Vector2>(name) - startPosition);
-                    anchorOffsets.Add(entity, currentAnchors);
-                }
-                offsets.Add(entity, EeveeUtils.GetPosition(entity) - startPosition);
-                collidable.Add(entity, entity.Collidable);
-                entity.Collidable = false;
-            }
-            moveAction();
-            var selfCollidable = Entity.Collidable;
-            Entity.Collidable = false;
-            OnPreMove?.Invoke();
-            foreach (var entity in Contained) {
-                entity.Collidable = collidable[entity];
-                if (anchorOffsets.ContainsKey(entity)) {
-                    var data = new DynamicData(entity);
-                    var currentAnchors = anchorOffsets[entity];
-                    foreach (var pair in currentAnchors)
-                        data.Set(pair.Key, Entity.Position + pair.Value);
-                }
-                if (moveFinalizer != null) {
-                    moveFinalizer(entity, offsets[entity]);
-                } else {
-                    if (entity is Platform platform) {
-                        platform.MoveTo(Entity.Position + offsets[entity]);
-                    } else {
-                        entity.Position = Entity.Position + offsets[entity];
-                    }
-                }
-            }
-            Entity.Collidable = selfCollidable;
-            OnPostMove?.Invoke();
-        }
-
-        public void DoIgnoreCollision(Action action) {
-            var lastCollidable = new Dictionary<Entity, bool>();
-            foreach (var entity in Contained) {
-                lastCollidable.Add(entity, entity.Collidable);
-                entity.Collidable = false;
-            }
-            action();
-            foreach (var entity in Contained)
-                entity.Collidable = lastCollidable[entity];
-        }
-
         public void RemoveContained() {
             foreach (var entity in Contained) {
                 if (entity is Platform platform)
@@ -190,26 +201,6 @@ namespace Celeste.Mod.EeveeHelper.Components {
                 entity.RemoveSelf();
             }
             Contained.Clear();
-        }
-
-
-        public static void Load() {
-            On.Monocle.Collide.Check_Entity_Entity += Collide_Check_Entity_Entity;
-        }
-
-        public static void Unload() {
-            On.Monocle.Collide.Check_Entity_Entity -= Collide_Check_Entity_Entity;
-        }
-
-        private static bool Collide_Check_Entity_Entity(On.Monocle.Collide.orig_Check_Entity_Entity orig, Entity a, Entity b) {
-            var aContainer = a.Get<EntityContainer>();
-            var bContainer = b.Get<EntityContainer>();
-            if ((aContainer != null && aContainer.Contained.Contains(b)) ||
-                (bContainer != null && bContainer.Contained.Contains(a))) {
-
-                return false;
-            }
-            return orig(a, b);
         }
     }
 }

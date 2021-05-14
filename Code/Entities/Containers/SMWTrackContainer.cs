@@ -11,13 +11,12 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.EeveeHelper.Entities {
     [CustomEntity("EeveeHelper/SMWTrackContainer")]
     public class SMWTrackContainer : Entity {
-        private string[] whitelist;
-        private string flag;
+        private string moveFlag;
         private bool notFlag;
         private bool startOnTouch;
         private bool disableBoost;
 
-        public EntityContainer Container;
+        public EntityContainerMover Container;
         public SMWTrackMover Mover;
 
         private bool started;
@@ -26,15 +25,19 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             Collider = new Hitbox(data.Width, data.Height);
             Depth = Depths.Top - 10;
 
-            whitelist = data.Attr("whitelist").Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
-            flag = data.Attr("flag");
-            notFlag = data.Bool("notFlag");
+            if (data.Has("moveFlag")) {
+                var flag = EeveeUtils.ParseFlagAttr(data.Attr("moveFlag"));
+                moveFlag = flag.Item1;
+                notFlag = flag.Item2;
+            } else {
+                moveFlag = data.Attr("flag");
+                notFlag = data.Bool("notFlag");
+            }
             startOnTouch = data.Bool("startOnTouch");
             disableBoost = data.Bool("disableBoost");
 
-            Add(Container = new EntityContainer {
-                FitContained = data.Bool("fitContained"),
-                IsValid = IsValid
+            Add(Container = new EntityContainerMover(data) {
+                DefaultIgnored = e => e.Get<SMWTrackMover>() != null || e is SMWTrack
             });
 
             Add(Mover = new SMWTrackMover {
@@ -63,17 +66,10 @@ namespace Celeste.Mod.EeveeHelper.Entities {
         public override void Update() {
             if (!started && startOnTouch)
                 started = PlayerCheck();
-            Mover.Activated = started && (string.IsNullOrEmpty(flag) || SceneAs<Level>().Session.GetFlag(flag) != notFlag);
+            Mover.Activated = started && Container.Attached && (string.IsNullOrEmpty(moveFlag) || SceneAs<Level>().Session.GetFlag(moveFlag) != notFlag);
             base.Update();
             if (Top > SceneAs<Level>().Bounds.Bottom)
                 RemoveSelf();
-        }
-
-        private bool IsValid(Entity entity) {
-            if (whitelist.Length == 0)
-                return !(entity.Get<SMWTrackMover>() != null || entity is SMWTrack || entity is Player || entity is SolidTiles || entity is BackgroundTiles || entity is Decal || entity is Trigger);
-            else
-                return whitelist.Contains(entity.GetType().Name);
         }
 
         private bool PlayerCheck() {

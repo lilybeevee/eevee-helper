@@ -17,18 +17,14 @@ namespace Celeste.Mod.EeveeHelper {
         public override void Load() {
             MiscHooks.Load();
             RoomChest.Load();
-            EntityContainer.Load();
             HoldableTiles.Load();
-            HoldableContainer.Load();
             PatientBooster.Load();
         }
 
         public override void Unload() {
             MiscHooks.Unload();
             RoomChest.Unload();
-            EntityContainer.Unload();
             HoldableTiles.Unload();
-            HoldableContainer.Unload();
             PatientBooster.Unload();
         }
     }

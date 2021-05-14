@@ -9,11 +9,10 @@ using System.Linq;
 namespace Celeste.Mod.EeveeHelper.Entities {
     [CustomEntity("EeveeHelper/AttachedContainer")]
     public class AttachedContainer : Entity {
-        private string[] whitelist;
         private string attachTo;
         private Vector2? node;
 
-        private EntityContainer container;
+        private EntityContainerMover container;
         private StaticMover mover;
         private Entity customAttached;
         private Vector2 lastAttachedPos;
@@ -23,16 +22,16 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             Collider = new Hitbox(data.Width, data.Height);
             Depth = Depths.Top - 11;
 
-            whitelist = data.Attr("whitelist").Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
             attachTo = data.Attr("attachTo");
 
             var nodes = data.NodesOffset(offset);
             if (nodes.Length > 0)
                 node = nodes[0];
 
-            Add(container = new EntityContainer {
-                FitContained = false,
-                IsValid = IsValid
+            Add(container = new EntityContainerMover(data) {
+                OnFit = OnFit,
+                IsValid = e => !IsRiding(e),
+                DefaultIgnored = e => e is AttachedContainer
             });
 
             if (string.IsNullOrEmpty(attachTo)) {
@@ -45,6 +44,14 @@ namespace Celeste.Mod.EeveeHelper.Entities {
                     OnDisable = OnDisable
                 });
             }
+        }
+
+        private void OnFit(Vector2 pos, float width, float height) {
+            var lastCenter = Center;
+            Position = pos;
+            Collider.Width = width;
+            Collider.Height = height;
+            container.DoMoveAction(() => Center = lastCenter);
         }
 
         public override void Awake(Scene scene) {
@@ -86,15 +93,6 @@ namespace Celeste.Mod.EeveeHelper.Entities {
                 if (customAttached.Scene == null)
                     RemoveSelf();
             }
-        }
-
-        private bool IsValid(Entity entity) {
-            if (IsRiding(entity))
-                return false;
-            if (whitelist.Length == 0)
-                return !(entity is AttachedContainer || entity is Player || entity is SolidTiles || entity is BackgroundTiles || entity is Decal || entity is Trigger);
-            else
-                return whitelist.Contains(entity.GetType().Name);
         }
 
         private bool IsRiding(Entity entity) {

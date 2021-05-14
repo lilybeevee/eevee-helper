@@ -34,7 +34,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
         private Collider endCollider;
 
         public SMWTrack(EntityData data, Vector2 offset) : base(data.Position + offset) {
-            Depth = Depths.BGDecals + 10;
+            Depth = Depths.BGDecals - 10;
 
             pointTexture = GFX.Game.GetOrDefault("objects/EeveeHelper/smwTrack/point", GFX.Game.GetFallback());
             endTexture = GFX.Game.GetOrDefault("objects/EeveeHelper/smwTrack/end", GFX.Game.GetFallback());
@@ -42,8 +42,9 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             Color = data.HexColor("color", Color.White);
             StartOpen = data.Bool("startOpen");
             EndOpen = data.Bool("endOpen");
-            flag = data.Attr("flag");
-            notFlag = data.Bool("notFlag");
+            var parsedFlag = EeveeUtils.ParseFlagAttr(data.Attr("flag"));
+            flag = parsedFlag.Item1;
+            notFlag = data.Bool("notFlag", parsedFlag.Item2);
             startOpenFlag = data.Attr("startOpenFlag");
             endOpenFlag = data.Attr("endOpenFlag");
             notStartOpenFlag = !StartOpen;
