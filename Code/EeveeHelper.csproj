@@ -74,7 +74,6 @@
     <Compile Include="Entities\Containers\AttachedContainer.cs" />
     <Compile Include="Entities\HoldableTiles.cs" />
     <Compile Include="Entities\Modifiers\FlagToggleModifier.cs" />
-    <Compile Include="Entities\Modifiers\NoCollideModifier.cs" />
     <Compile Include="Entities\Modifiers\CollidableModifier.cs" />
     <Compile Include="Entities\PatientBooster.cs" />
     <Compile Include="Entities\RoomChest.cs" />

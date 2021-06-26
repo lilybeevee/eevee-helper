@@ -20,11 +20,13 @@ namespace Celeste.Mod.EeveeHelper.Entities {
         public bool Enabled = true;
 
         protected List<Vector2> nodes;
+        private Color inactiveColor;
         private string startOpenFlag;
         private string endOpenFlag;
         private string flag;
         private bool notFlag;
         private bool hidden;
+        private bool hideInactive;
 
         private MTexture pointTexture;
         private MTexture endTexture;
@@ -40,6 +42,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             endTexture = GFX.Game.GetOrDefault("objects/EeveeHelper/smwTrack/end", GFX.Game.GetFallback());
 
             Color = data.HexColor("color", Color.White);
+            inactiveColor = data.HexColor("inactiveColor", Color.Transparent);
             StartOpen = data.Bool("startOpen");
             EndOpen = data.Bool("endOpen");
             var parsedFlag = EeveeUtils.ParseFlagAttr(data.Attr("flag"));
@@ -50,6 +53,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             notStartOpenFlag = !StartOpen;
             notEndOpenFlag = !EndOpen;
             hidden = data.Bool("hidden");
+            hideInactive = data.Bool("hideInactive", true);
 
             nodes = new List<Vector2>();
             nodes.Add(Position);
@@ -77,9 +81,9 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             for (var i = 0; i < nodes.Count; i++) {
                 var node = nodes[i];
                 if ((i == 0 && !StartOpen) || (i == nodes.Count - 1 && !EndOpen)) {
-                    endTexture.DrawCentered(node.Floor(), Color);
+                    endTexture.DrawCentered(node.Floor(), GetColor());
                 } else {
-                    pointTexture.DrawCentered(node.Floor(), Color);
+                    pointTexture.DrawCentered(node.Floor(), GetColor());
                 }
             }
         }
@@ -91,18 +95,13 @@ namespace Celeste.Mod.EeveeHelper.Entities {
 
         protected virtual void FlagCheck() {
             var level = SceneAs<Level>();
-            if (!string.IsNullOrEmpty(flag)) {
-                if (level.Session.GetFlag(flag) != notFlag) {
-                    Visible = !hidden;
-                    Enabled = Collidable = true;
-                } else {
-                    Enabled = Collidable = Visible = false;
-                }
-            }
+            if (!string.IsNullOrEmpty(flag))
+                Enabled = Collidable = (level.Session.GetFlag(flag) != notFlag);
             if (!string.IsNullOrEmpty(startOpenFlag))
                 StartOpen = level.Session.GetFlag(startOpenFlag) != notStartOpenFlag;
             if (!string.IsNullOrEmpty(endOpenFlag))
                 EndOpen = level.Session.GetFlag(endOpenFlag) != notEndOpenFlag;
+            Visible = !hidden && (!hideInactive || Enabled);
         }
 
         protected virtual void GenerateSections() {
@@ -115,9 +114,34 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             }
         }
 
+        protected virtual Color GetColor() {
+            if (Enabled)
+                return Color;
+            else if (inactiveColor == Color.Transparent)
+                return Color.Lerp(Color, Color.Black, 0.5f);
+            else
+                return inactiveColor;
+        }
+
         protected virtual void DrawSection(Section section) {
-            Draw.Line(section.Start, section.End, Color.Black, 4f);
-            Draw.Line(section.Start, section.End, Color, 2f);
+            if (Enabled) {
+                Draw.Line(section.Start, section.End, Color.Black, 4f);
+                Draw.Line(section.Start, section.End, GetColor(), 2f);
+            } else {
+                var dist = Vector2.Distance(section.Start, section.End);
+                var angle = Vector2.Normalize(section.End - section.Start);
+                var segments = (int)Math.Floor(dist / 4f);
+                if (segments > 0 && segments % 2 == 0)
+                    segments--;
+                var offset = (dist - (segments * 4f)) / 2f;
+                for (var i = 0; i < segments; i++) {
+                    if (i % 2 == 0) continue;
+                    var start = section.Start + angle * (offset + i * 4f);
+                    var end = start + angle * 4f;
+                    Draw.Line(start, end, Color.Black, 4f);
+                    Draw.Line(start + angle, end - angle, GetColor(), 2f);
+                }
+            }
         }
 
         public Section TryQuickAttach(Vector2 point, out Vector2 pos, Section ignore = null) {

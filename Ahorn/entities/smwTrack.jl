@@ -2,8 +2,9 @@ module EeveeHelperSMWTrack
 
 using ..Ahorn, Maple
 
-@mapdef Entity "EeveeHelper/SMWTrack" SMWTrack(x::Integer, y::Integer, color::String="FFFFFF", flag::String="", startOpenFlag::String="", endOpenFlag::String="",
-    startOpen::Bool=false, endOpen::Bool=false, notFlag::Bool=false, hidden::Bool=false)
+@mapdef Entity "EeveeHelper/SMWTrack" SMWTrack(x::Integer, y::Integer, color::String="FFFFFF", inactiveColor::String="",
+    flag::String="", startOpenFlag::String="", endOpenFlag::String="",
+    startOpen::Bool=false, endOpen::Bool=false, notFlag::Bool=false, hidden::Bool=false, hideInactive::Bool=false)
 
 const placements = Ahorn.PlacementDict(
     "SMW Track (Eevee Helper)" => Ahorn.EntityPlacement(

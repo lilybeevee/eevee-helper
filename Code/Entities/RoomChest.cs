@@ -309,9 +309,9 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             UpdateListsNoCallbacks(level);
         }
 
-        public static void ActivateEntities(Level level) {
+        public static void ActivateEntities(Level level, List<Entity> exclude = null) {
             foreach (var entity in level.GetEntitiesExcludingTagMask(Tags.Global)) {
-                if (IsEntitySaved(entity))
+                if (IsEntitySaved(entity) && (exclude == null || !exclude.Contains(entity)))
                     level.Remove(entity);
             }
             level.Entities.UpdateLists();

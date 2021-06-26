@@ -59,6 +59,7 @@ namespace Celeste.Mod.EeveeHelper.Components {
                 var targetCorner = new Vector2(bounds.X + bounds.Width + Padding.Z, bounds.Y + bounds.Height + Padding.W);
                 var targetWidth = targetCorner.X - targetPos.X;
                 var targetHeight = targetCorner.Y - targetPos.Y;
+
                 if (Entity.TopLeft != targetPos || Entity.BottomRight != targetCorner) {
                     if (OnFit != null) {
                         OnFit(targetPos, targetWidth, targetHeight);
@@ -133,21 +134,22 @@ namespace Celeste.Mod.EeveeHelper.Components {
             var selfCollidable = Entity.Collidable;
             Entity.Collidable = false;
             OnPreMove?.Invoke();
+            var newPosition = EeveeUtils.GetPosition(Entity);
             foreach (var entity in Contained) {
                 entity.Collidable = collidable[entity];
                 if (anchorOffsets.ContainsKey(entity)) {
                     var data = new DynamicData(entity);
                     var currentAnchors = anchorOffsets[entity];
                     foreach (var pair in currentAnchors)
-                        data.Set(pair.Key, Entity.Position + pair.Value);
+                        data.Set(pair.Key, newPosition + pair.Value);
                 }
                 if (moveFinalizer != null) {
                     moveFinalizer(entity, offsets[entity]);
                 } else {
                     if (entity is Platform platform) {
-                        platform.MoveTo(Entity.Position + offsets[entity]);
+                        platform.MoveTo(newPosition + offsets[entity]);
                     } else {
-                        entity.Position = Entity.Position + offsets[entity];
+                        entity.Position = newPosition + offsets[entity];
                     }
                 }
             }

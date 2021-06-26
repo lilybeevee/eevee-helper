@@ -67,7 +67,7 @@ namespace Celeste.Mod.EeveeHelper {
                     if (entity is Platform platform) {
                         platform.MoveToX(self.Position.X + offset.X, platform.LiftSpeed.X + container.Speed.X);
                     } else {
-                        entity.Position.X = self.Position.X + offset.X;
+                        entity.Position = self.Position + offset;
                     }
                 });
             } else {

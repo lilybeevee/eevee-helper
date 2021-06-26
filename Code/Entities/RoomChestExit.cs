@@ -49,15 +49,22 @@ namespace Celeste.Mod.EeveeHelper.Entities {
                             level.Session.FirstLevel = false;
                             level.Session.DeathsInCurrentLevel = 0;
                             level.Session.RespawnPoint = level.DefaultSpawnPoint;
-                            level.LoadLevel(Player.IntroTypes.Transition);
-                            RoomChest.ActivateEntities(level);
-
                             level.Add(player);
+                            var exclude = new List<Entity>() { player };
+                            if (held != null) {
+                                level.Add(held.Entity);
+                                exclude.Add(held.Entity);
+                                player.Holding = held;
+                            }
+                            level.LoadLevel(Player.IntroTypes.Transition);
+                            RoomChest.ActivateEntities(level, exclude);
+
+                            /*level.Add(player);
                             if (held != null) {
                                 level.Add(held.Entity);
                                 player.Holding = held;
                             }
-                            level.Entities.UpdateLists();
+                            level.Entities.UpdateLists();*/
 
                             var lastChest = RoomChest.LastChests.Pop();
                             player.Position = lastChest.BottomCenter - Vector2.UnitY * 2f;

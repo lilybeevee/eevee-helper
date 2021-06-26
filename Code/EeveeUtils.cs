@@ -12,7 +12,7 @@ namespace Celeste.Mod.EeveeHelper {
         internal static MethodInfo m_SpringBounceAnimate = typeof(Spring).GetMethod("BounceAnimate", BindingFlags.NonPublic | BindingFlags.Instance);
 
         public static Vector2 GetPosition(Entity entity) =>
-            entity is Platform platform ? platform.ExactPosition : (entity is Actor actor ? actor.ExactPosition : entity.Position);
+            entity is Platform platform ? platform.ExactPosition : entity.Position;
 
         public static Vector2 GetTrackBoost(Vector2 move, bool disableBoost) {
             return move * new Vector2(disableBoost ? 0f : 1f, 1f) + (move.X != 0f && move.Y == 0f && disableBoost ? Vector2.UnitY * 0.01f : Vector2.Zero);

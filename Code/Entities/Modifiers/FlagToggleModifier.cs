@@ -17,7 +17,7 @@ namespace Celeste.Mod.EeveeHelper.Entities.Modifiers {
         private bool notFlag;
 
         private EntityContainer container;
-        private Dictionary<Entity, Tuple<bool, bool>> entityState = new Dictionary<Entity, Tuple<bool, bool>>();
+        private Dictionary<Entity, EntityState> entityStates = new Dictionary<Entity, EntityState>();
 
         public FlagToggleModifier(EntityData data, Vector2 offset) : base(data.Position + offset) {
             Collider = new Hitbox(data.Width, data.Height);
@@ -31,20 +31,18 @@ namespace Celeste.Mod.EeveeHelper.Entities.Modifiers {
                 DefaultIgnored = e => e.Get<EntityContainer>() != null,
                 OnDetach = EnableEntity
             });
-        }
 
-        public override void Awake(Scene scene) {
-            base.Awake(scene);
-
-            if (Toggled)
-                EnableEntities();
-            else
-                DisableEntities();
+            Add(new TransitionListener {
+                OnIn = (f) => CheckToggled()
+            });
         }
 
         public override void Update() {
             base.Update();
+            CheckToggled();
+        }
 
+        private void CheckToggled() {
             if (Toggled)
                 EnableEntities();
             else
@@ -53,29 +51,61 @@ namespace Celeste.Mod.EeveeHelper.Entities.Modifiers {
 
         private void DisableEntities() {
             foreach (var entity in container.Contained) {
-                if (!entityState.ContainsKey(entity)) {
-                    entityState.Add(entity, Tuple.Create(entity.Visible, entity.Collidable));
-
-                    entity.Active = entity.Visible = entity.Collidable = false;
-                }
+                if (!entityStates.ContainsKey(entity))
+                    entityStates.Add(entity, new EntityState(entity));
+                EntityState.Disable(entity);
             }
         }
 
         private void EnableEntities() {
-            foreach (var entity in container.Contained) {
+            foreach (var entity in container.Contained)
                 EnableEntity(entity);
-            }
 
-            entityState.Clear();
+            entityStates.Clear();
         }
 
         private void EnableEntity(Entity entity) {
-            if (entityState.ContainsKey(entity)) {
-                var state = entityState[entity];
+            if (entityStates.ContainsKey(entity))
+                entityStates[entity].Apply(entity);
+        }
 
-                entity.Active = true;
-                entity.Visible = state.Item1;
-                entity.Collidable = state.Item2;
+        private struct EntityState {
+            bool Active;
+            bool Visible;
+            bool Collidable;
+
+            bool TalkComponentEnabled;
+
+            public EntityState(Entity entity) {
+                Active = entity.Active;
+                Visible = entity.Visible;
+                Collidable = entity.Collidable;
+
+                var talkComponent = entity.Get<TalkComponent>();
+                if (talkComponent != null)
+                    TalkComponentEnabled = talkComponent.Enabled;
+                else
+                    TalkComponentEnabled = false;
+            }
+
+            public void Apply(Entity entity) {
+                entity.Active = Active;
+                entity.Visible = Visible;
+                entity.Collidable = Collidable;
+
+                var talkComponent = entity.Get<TalkComponent>();
+                if (talkComponent != null)
+                    talkComponent.Enabled = TalkComponentEnabled;
+            }
+
+            public static void Disable(Entity entity) {
+                entity.Active = false;
+                entity.Visible = false;
+                entity.Collidable = false;
+
+                var talkComponent = entity.Get<TalkComponent>();
+                if (talkComponent != null)
+                    talkComponent.Enabled = false;
             }
         }
     }

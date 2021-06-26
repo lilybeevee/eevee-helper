@@ -3,25 +3,26 @@ module EeveeHelperEntityContainers
 using ..Ahorn, Maple
 
 @mapdef Entity "EeveeHelper/HoldableContainer" HoldableContainer(x::Integer, y::Integer, width::Integer=8, height::Integer=8,
-    whitelist::String="", blacklist::String="", fitContained::Bool=true, containMode::String="FlagChanged", containFlag::String="",
-    gravity::Bool=true, holdable::Bool=true, noDuplicate::Bool=false, slowFall::Bool=false, slowRun::Bool=true, destroyable::Bool=true)
+    whitelist::String="", blacklist::String="", fitContained::Bool=true, containMode::String="RoomStart", containFlag::String="",
+    gravity::Bool=true, holdable::Bool=true, noDuplicate::Bool=false, slowFall::Bool=false, slowRun::Bool=true, destroyable::Bool=true, tutorial::Bool=false,
+    respawn::Bool=false, waitForGrab::Bool=false)
 @mapdef Entity "EeveeHelper/AttachedContainer" AttachedContainer(x::Integer, y::Integer, width::Integer=8, height::Integer=8,
-    whitelist::String="", blacklist::String="", fitContained::Bool=true, containMode::String="FlagChanged", containFlag::String="",
-    attachTo::String="")
+    whitelist::String="", blacklist::String="", fitContained::Bool=true, containMode::String="RoomStart", containFlag::String="",
+    attachMode::String="RoomStart", attachFlag::String="", attachTo::String="", restrictToNode::Bool=true, onlyX::Bool=false, onlyY::Bool=false)
 @mapdef Entity "EeveeHelper/FloatyContainer" FloatyContainer(x::Integer, y::Integer, width::Integer=8, height::Integer=8,
-    whitelist::String="", blacklist::String="", containMode::String="FlagChanged", containFlag::String="",
+    whitelist::String="", blacklist::String="", containMode::String="RoomStart", containFlag::String="",
     floatSpeed::Number=1.0, floatMove::Number=4.0, pushSpeed::Number=1.0, pushMove::Number=8.0, sinkSpeed::Number=1.0, sinkMove::Number=12.0,
     disableSpawnOffset::Bool=false, disablePush::Bool=false)
 @mapdef Entity "EeveeHelper/SMWTrackContainer" SMWTrackContainer(x::Integer, y::Integer, width::Integer=8, height::Integer=8,
-    whitelist::String="", blacklist::String="", fitContained::Bool=true, containMode::String="FlagChanged", containFlag::String="",
+    whitelist::String="", blacklist::String="", fitContained::Bool=true, containMode::String="RoomStart", containFlag::String="",
     moveSpeed::Number=100.0, fallSpeed::Number=200.0, gravity::Number=200.0, direction::String="Right", moveFlag::String="", startOnTouch::Bool=false,
     disableBoost::Bool=false)
 
 @mapdef Entity "EeveeHelper/FlagToggleModifier" FlagToggleModifier(x::Integer, y::Integer, width::Integer=8, height::Integer=8,
-    whitelist::String="", blacklist::String="", containMode::String="FlagChanged", containFlag::String="",
+    whitelist::String="", blacklist::String="", containMode::String="RoomStart", containFlag::String="",
     flag::String="")
 @mapdef Entity "EeveeHelper/CollidableModifier" CollidableModifier(x::Integer, y::Integer, width::Integer=8, height::Integer=8,
-    whitelist::String="", blacklist::String="", containMode::String="FlagChanged", containFlag::String="",
+    whitelist::String="", blacklist::String="", containMode::String="RoomStart", containFlag::String="",
     noCollide::Bool=false, solidify::Bool=false)
 
 const containerUnion = Union{HoldableContainer, AttachedContainer, FloatyContainer, SMWTrackContainer, FlagToggleModifier, CollidableModifier}
@@ -92,12 +93,17 @@ Ahorn.minimumSize(entity::containerUnion) = 8, 8
 Ahorn.resizable(entity::containerUnion) = true, true
 
 Ahorn.editingOrder(entity::containerUnion) = ["x", "y", "width", "height", "containMode", "containFlag", "whitelist", "blacklist"]
+Ahorn.editingOrder(entity::AttachedContainer) = ["x", "y", "width", "height", "containMode", "containFlag", "whitelist", "blacklist", "attachMode", "attachFlag", "attachTo"]
 Ahorn.editingOrder(entity::FloatyContainer) = ["x", "y", "width", "height", "containMode", "containFlag", "whitelist", "blacklist", "floatMove", "floatSpeed", "pushMove", "pushSpeed", "sinkMove", "sinkSpeed"]
 
-const containModeOptions = ["FlagChanged", "RoomStart", "Always"]
+const containModeOptions = ["RoomStart", "FlagChanged", "Always"]
 
 Ahorn.editingOptions(entity::containerUnion) = Dict{String, Any}(
     "containMode" => containModeOptions
+)
+Ahorn.editingOptions(entity::AttachedContainer) = Dict{String, Any}(
+    "containMode" => containModeOptions,
+    "attachMode" => containModeOptions
 )
 Ahorn.editingOptions(entity::SMWTrackContainer) = Dict{String, Any}(
     "containMode" => containModeOptions,

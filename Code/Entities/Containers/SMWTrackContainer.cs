@@ -66,7 +66,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
         public override void Update() {
             if (!started && startOnTouch)
                 started = PlayerCheck();
-            Mover.Activated = started && Container.Attached && (string.IsNullOrEmpty(moveFlag) || SceneAs<Level>().Session.GetFlag(moveFlag) != notFlag);
+            Mover.Activated = started && (string.IsNullOrEmpty(moveFlag) || SceneAs<Level>().Session.GetFlag(moveFlag) != notFlag);
             base.Update();
             if (Top > SceneAs<Level>().Bounds.Bottom)
                 RemoveSelf();

@@ -9,39 +9,54 @@ using System.Linq;
 namespace Celeste.Mod.EeveeHelper.Entities {
     [CustomEntity("EeveeHelper/AttachedContainer")]
     public class AttachedContainer : Entity {
+        private EntityContainer.ContainMode attachMode;
+        private string attachFlag;
+        private bool notAttachFlag;
         private string attachTo;
+        private bool restrictToNode;
+        private bool onlyX;
+        private bool onlyY;
         private Vector2? node;
 
         private EntityContainerMover container;
         private StaticMover mover;
+        private bool attached;
         private Entity customAttached;
         private Vector2 lastAttachedPos;
+        private Entity firstAttached = null;
         private Dictionary<Entity, Tuple<bool, bool, bool>> lastStates = new Dictionary<Entity, Tuple<bool, bool, bool>>();
 
         public AttachedContainer(EntityData data, Vector2 offset) : base(data.Position + offset) {
             Collider = new Hitbox(data.Width, data.Height);
             Depth = Depths.Top - 11;
 
+            attachMode = data.Enum("attachMode", EntityContainer.ContainMode.RoomStart);
+            var parsedFlag = EeveeUtils.ParseFlagAttr(data.Attr("attachFlag"));
+            attachFlag = parsedFlag.Item1;
+            notAttachFlag = parsedFlag.Item2;
             attachTo = data.Attr("attachTo");
+            restrictToNode = data.Bool("restrictToNode");
+            onlyX = data.Bool("onlyX");
+            onlyY = data.Bool("onlyY");
 
             var nodes = data.NodesOffset(offset);
             if (nodes.Length > 0)
-                node = nodes[0];
+                node = nodes[0] - Center;
 
             Add(container = new EntityContainerMover(data) {
                 OnFit = OnFit,
-                IsValid = e => !IsRiding(e),
+                IsValid = e => !IsValid(e),
                 DefaultIgnored = e => e is AttachedContainer
             });
 
-            if (string.IsNullOrEmpty(attachTo)) {
+            if (string.IsNullOrEmpty(attachTo) && attachMode == EntityContainer.ContainMode.RoomStart) {
                 Add(mover = new StaticMover {
-                    JumpThruChecker = (entity) => IsRiding(entity),
-                    SolidChecker = (entity) => IsRiding(entity),
-                    OnMove = (amount) => container.DoMoveAction(() => Position += amount, KeepLiftSpeed),
-                    OnShake = (amount) => container.DoMoveAction(() => Position += amount, KeepLiftSpeed),
-                    OnEnable = OnEnable,
-                    OnDisable = OnDisable
+                    JumpThruChecker = (entity) => IsRiding(entity, true),
+                    SolidChecker = (entity) => IsRiding(entity, true),
+                    OnMove = (amount) => { if (attached) OnMove(amount); },
+                    OnShake = (amount) => { if (attached) OnMove(amount); },
+                    OnEnable = () => { if (attached) OnEnable(); },
+                    OnDisable = () => { if (attached) OnDisable(); }
                 });
             }
         }
@@ -55,38 +70,51 @@ namespace Celeste.Mod.EeveeHelper.Entities {
         }
 
         public override void Awake(Scene scene) {
-            if (!string.IsNullOrEmpty(attachTo)) {
-                var closestDist = 0f;
-                Entity closest = null;
-                foreach (var entity in scene.Entities) {
-                    if (entity.GetType().Name == attachTo) {
-                        if (node != null && entity.CollidePoint(node.Value)) {
-                            closest = entity;
-                            break;
-                        } else {
-                            var dist = Vector2.Distance(node ?? Center, entity.Center);
-                            if (closest == null || dist < closestDist) {
-                                closestDist = dist;
-                                closest = entity;
-                            }
-                        }
-                    }
-                }
-                if (closest != null) {
-                    customAttached = closest;
-                    lastAttachedPos = EeveeUtils.GetPosition(customAttached);
-                }
+            attached = string.IsNullOrEmpty(attachFlag) || SceneAs<Level>().Session.GetFlag(attachFlag) != notAttachFlag;
+
+            if (attachMode == EntityContainer.ContainMode.RoomStart) {
+                TryAttach(true);
+                if (!attached)
+                    customAttached = null;
+            } else {
+                if (attached)
+                    TryAttach();
             }
+
             base.Awake(scene);
         }
 
         public override void Update() {
             base.Update();
 
+            var newAttached = string.IsNullOrEmpty(attachFlag) || SceneAs<Level>().Session.GetFlag(attachFlag) != notAttachFlag;
+
+            if (attachMode != EntityContainer.ContainMode.Always) {
+                if (newAttached != attached) {
+                    attached = newAttached;
+
+                    if (attached)
+                        TryAttach();
+                    else
+                        customAttached = null;
+                }
+            } else {
+                var attachChanged = newAttached != attached;
+
+                attached = newAttached;
+
+                if (attached && customAttached == null)
+                    TryAttach();
+                else if (!attached)
+                    customAttached = null;
+            }
+
             if (customAttached != null) {
                 var newPos = EeveeUtils.GetPosition(customAttached);
                 if (newPos != lastAttachedPos) {
                     var delta = newPos - lastAttachedPos;
+                    if (onlyX) delta.Y = 0f;
+                    if (onlyY) delta.X = 0f;
                     container.DoMoveAction(() => Position += delta);
                     lastAttachedPos = newPos;
                 }
@@ -95,15 +123,55 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             }
         }
 
-        private bool IsRiding(Entity entity) {
-            if (mover != null && mover.Platform != null)
+        private bool TryAttach(bool first = false) {
+            if (mover == null) {
+                if (attachMode != EntityContainer.ContainMode.RoomStart || first) {
+                    var closestDist = 0f;
+                    Entity closest = null;
+                    foreach (var entity in Scene.Entities) {
+                        if (string.IsNullOrEmpty(attachTo) ? (entity is JumpThru || entity is Solid) : entity.GetType().Name == attachTo) {
+                            if (node != null && entity.CollidePoint(Center + node.Value)) {
+                                closest = entity;
+                                break;
+                            }
+                            if (node == null || !restrictToNode) {
+                                if (!string.IsNullOrEmpty(attachTo)) {
+                                    var dist = Vector2.Distance(node != null ? (Center + node.Value) : Center, entity.Center);
+                                    if (closest == null || dist < closestDist) {
+                                        closestDist = dist;
+                                        closest = entity;
+                                    }
+                                } else if (IsRiding(entity, false)) {
+                                    closest = entity;
+                                }
+                            }
+                        }
+                    }
+                    if (closest != null) {
+                        customAttached = closest;
+                        lastAttachedPos = EeveeUtils.GetPosition(customAttached);
+                        return true;
+                    }
+                } else {
+                    customAttached = firstAttached;
+                    if (customAttached != null)
+                        lastAttachedPos = EeveeUtils.GetPosition(customAttached);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private bool IsValid(Entity entity) {
+            if (mover != null)
                 return entity == mover.Platform;
-
-            if (!string.IsNullOrEmpty(attachTo))
+            else
                 return entity == customAttached;
+        }
 
-            if (node != null)
-                return entity.CollidePoint(node.Value);
+        private bool IsRiding(Entity entity, bool checkNode) {
+            if (checkNode && node != null)
+                return entity.CollidePoint(Center + node.Value);
             else if (entity is JumpThru)
                 return CollideCheckOutside(entity, Position + Vector2.UnitY);
             else
@@ -111,6 +179,12 @@ namespace Celeste.Mod.EeveeHelper.Entities {
                     || CollideCheckOutside(entity, Position - Vector2.UnitY)
                     || CollideCheckOutside(entity, Position + Vector2.UnitX)
                     || CollideCheckOutside(entity, Position - Vector2.UnitX);
+        }
+        
+        private void OnMove(Vector2 amount) {
+            if (onlyX) amount.Y = 0f;
+            if (onlyY) amount.X = 0f;
+            container.DoMoveAction(() => Position += amount, KeepLiftSpeed);
         }
 
         private void OnEnable() {
