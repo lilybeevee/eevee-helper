@@ -20,5 +20,25 @@ namespace Celeste.Mod.EeveeHelper {
 
         public static Tuple<string, bool> ParseFlagAttr(string flag)
             => flag.StartsWith("!") ? Tuple.Create(flag.Substring(1), true) : Tuple.Create(flag, false);
+
+        public static void ParseFlagAttr(string attr, out string flag, out bool notFlag) {
+            var parsed = ParseFlagAttr(attr);
+            flag = parsed.Item1;
+            notFlag = parsed.Item2;
+        }
+
+        public static EntityData CloneEntityData(EntityData data, LevelData levelData = null) {
+            var newData = new EntityData();
+            newData.Name = data.Name;
+            newData.Level = levelData ?? data.Level;
+            newData.ID = data.ID;
+            newData.Position = data.Position + data.Level.Position - newData.Level.Position;
+            newData.Width = data.Width;
+            newData.Height = data.Height;
+            newData.Origin = data.Origin;
+            newData.Nodes = (Vector2[])data.Nodes.Clone();
+            newData.Values = new Dictionary<string, object>(data.Values);
+            return newData;
+        }
     }
 }

@@ -19,6 +19,7 @@ namespace Celeste.Mod.EeveeHelper.Components {
         public Vector4 Padding;
 
         public bool FitContained;
+        public bool IgnoreAnchors;
         public Action<Vector2, float, float> OnFit;
         public Action OnPreMove;
         public Action OnPostMove;
@@ -28,6 +29,7 @@ namespace Celeste.Mod.EeveeHelper.Components {
         public EntityContainerMover(EntityData data, bool fitContained = true) : base(data) {
             if (fitContained)
                 FitContained = data.Bool("fitContained");
+            IgnoreAnchors = data.Bool("ignoreAnchors");
         }
 
         public override void Added(Entity entity) {
@@ -77,6 +79,9 @@ namespace Celeste.Mod.EeveeHelper.Components {
         protected override void AddContained(Entity entity) {
             base.AddContained(entity);
 
+            if (IgnoreAnchors)
+                return;
+
             var data = new DynamicData(entity);
             if (!data.TryGet<List<string>>("entityContainerAnchors", out _)) {
                 var anchors = new List<string>();
@@ -119,12 +124,14 @@ namespace Celeste.Mod.EeveeHelper.Components {
             var startPosition = EeveeUtils.GetPosition(Entity);
             foreach (var entity in Contained) {
                 var data = new DynamicData(entity);
-                var anchorNames = data.Get<List<string>>("entityContainerAnchors");
-                if (anchorNames != null) {
-                    var currentAnchors = new Dictionary<string, Vector2>();
-                    foreach (var name in anchorNames)
-                        currentAnchors.Add(name, data.Get<Vector2>(name) - startPosition);
-                    anchorOffsets.Add(entity, currentAnchors);
+                if (!IgnoreAnchors) {
+                    var anchorNames = data.Get<List<string>>("entityContainerAnchors");
+                    if (anchorNames != null) {
+                        var currentAnchors = new Dictionary<string, Vector2>();
+                        foreach (var name in anchorNames)
+                            currentAnchors.Add(name, data.Get<Vector2>(name) - startPosition);
+                        anchorOffsets.Add(entity, currentAnchors);
+                    }
                 }
                 offsets.Add(entity, EeveeUtils.GetPosition(entity) - startPosition);
                 collidable.Add(entity, entity.Collidable);
@@ -137,7 +144,7 @@ namespace Celeste.Mod.EeveeHelper.Components {
             var newPosition = EeveeUtils.GetPosition(Entity);
             foreach (var entity in Contained) {
                 entity.Collidable = collidable[entity];
-                if (anchorOffsets.ContainsKey(entity)) {
+                if (!IgnoreAnchors && anchorOffsets.ContainsKey(entity)) {
                     var data = new DynamicData(entity);
                     var currentAnchors = anchorOffsets[entity];
                     foreach (var pair in currentAnchors)

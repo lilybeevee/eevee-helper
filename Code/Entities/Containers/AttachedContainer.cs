@@ -16,6 +16,8 @@ namespace Celeste.Mod.EeveeHelper.Entities {
         private bool restrictToNode;
         private bool onlyX;
         private bool onlyY;
+        private bool matchCollidable;
+        private bool matchVisible;
         private Vector2? node;
 
         private EntityContainerMover container;
@@ -24,6 +26,9 @@ namespace Celeste.Mod.EeveeHelper.Entities {
         private Entity customAttached;
         private Vector2 lastAttachedPos;
         private Entity firstAttached = null;
+        private Tuple<bool, bool> lastAttachedState = Tuple.Create(true, true);
+        private Dictionary<Entity, bool> lastMatchCollidable = new Dictionary<Entity, bool>();
+        private Dictionary<Entity, bool> lastMatchVisible = new Dictionary<Entity, bool>();
         private Dictionary<Entity, Tuple<bool, bool, bool>> lastStates = new Dictionary<Entity, Tuple<bool, bool, bool>>();
 
         public AttachedContainer(EntityData data, Vector2 offset) : base(data.Position + offset) {
@@ -38,6 +43,8 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             restrictToNode = data.Bool("restrictToNode");
             onlyX = data.Bool("onlyX");
             onlyY = data.Bool("onlyY");
+            matchCollidable = data.Bool("matchCollidable");
+            matchVisible = data.Bool("matchVisible");
 
             var nodes = data.NodesOffset(offset);
             if (nodes.Length > 0)
@@ -121,6 +128,32 @@ namespace Celeste.Mod.EeveeHelper.Entities {
                 if (customAttached.Scene == null)
                     RemoveSelf();
             }
+
+            var attachedTo = customAttached ?? mover?.Platform;
+            var currentState = attachedTo != null ? Tuple.Create(attachedTo.Collidable, attachedTo.Visible) : Tuple.Create(true, true);
+            if (attachedTo != null) {
+                foreach (var entity in container.Contained) {
+                    if (matchCollidable && currentState.Item1 != lastAttachedState.Item1) {
+                        if (!currentState.Item1) {
+                            lastMatchCollidable[entity] = entity.Collidable;
+                            entity.Collidable = false;
+                        } else {
+                            entity.Collidable = lastMatchCollidable[entity];
+                            lastMatchCollidable.Remove(entity);
+                        }
+                    }
+                    if (matchVisible && currentState.Item2 != lastAttachedState.Item2) {
+                        if (!currentState.Item2) {
+                            lastMatchVisible[entity] = entity.Visible;
+                            entity.Visible = false;
+                        } else {
+                            entity.Visible = lastMatchVisible[entity];
+                            lastMatchVisible.Remove(entity);
+                        }
+                    }
+                }
+            }
+            lastAttachedState = currentState;
         }
 
         private bool TryAttach(bool first = false) {

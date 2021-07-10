@@ -1,6 +1,7 @@
 ﻿using Celeste.Mod.EeveeHelper.Components;
 using Celeste.Mod.EeveeHelper.Entities;
 using Celeste.Mod.EeveeHelper.Entities.Modifiers;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Mono.Cecil.Cil;
 using Monocle;
@@ -16,6 +17,8 @@ using System.Threading.Tasks;
 
 namespace Celeste.Mod.EeveeHelper {
     public static class MiscHooks {
+        private static ILHook levelLoadHook;
+
         public static void Load() {
             On.Monocle.Collide.Check_Entity_Entity += Collide_Check_Entity_Entity;
             On.Celeste.Actor.MoveHExact += Actor_MoveHExact;
@@ -23,6 +26,9 @@ namespace Celeste.Mod.EeveeHelper {
             On.Celeste.Actor.OnGround_int += Actor_OnGround_int;
             IL.Celeste.Holdable.Release += Holdable_Release;
             IL.Celeste.MapData.ParseBackdrop += MapData_ParseBackdrop;
+            IL.Monocle.EntityList.UpdateLists += EntityList_UpdateLists;
+
+            levelLoadHook = new ILHook(typeof(Level).GetMethod("orig_LoadLevel", BindingFlags.Public | BindingFlags.Instance), Level_orig_LoadLevel);
         }
 
         public static void Unload() {
@@ -32,6 +38,174 @@ namespace Celeste.Mod.EeveeHelper {
             On.Celeste.Actor.OnGround_int -= Actor_OnGround_int;
             IL.Celeste.Holdable.Release -= Holdable_Release;
             IL.Celeste.MapData.ParseBackdrop -= MapData_ParseBackdrop;
+            IL.Monocle.EntityList.UpdateLists -= EntityList_UpdateLists;
+
+            levelLoadHook?.Dispose();
+        }
+
+        private static HashSet<EntityData> GlobalModifiedData = new HashSet<EntityData>();
+        private static int LastLoadedGlobalModified;
+        private static bool LoadingGlobalModified;
+        private static int LoadingGlobalTags;
+
+        private static void EntityList_UpdateLists(ILContext il) {
+            var cursor = new ILCursor(il);
+
+            var addedEntityLoc = -1;
+            if (cursor.TryGotoNext(MoveType.Before,
+                instr => instr.MatchLdloc(out addedEntityLoc),
+                instr => true,
+                instr => true,
+                instr => instr.MatchCallvirt<Entity>("Added"))) {
+
+                cursor.Emit(OpCodes.Ldarg_0);
+                cursor.Emit(OpCodes.Ldloc, addedEntityLoc);
+                cursor.EmitDelegate<Action<EntityList, Entity>>((entityList, entity) => {
+                    var component = entity.Get<TagAdderComponent>();
+                    if (component != null) {
+                        LoadingGlobalModified = true;
+                        LoadingGlobalTags = component.Tags;
+                        LastLoadedGlobalModified = entityList.ToAdd.Count;
+                    }
+                });
+
+                cursor.Index += 4;
+
+                cursor.Emit(OpCodes.Ldarg_0);
+                cursor.EmitDelegate<Action<EntityList>>(entityList => {
+                    if (LoadingGlobalModified) {
+                        foreach (var entity in entityList.ToAdd.Skip(LastLoadedGlobalModified))
+                            entity.Add(new TagAdderComponent(LoadingGlobalTags));
+                        LastLoadedGlobalModified = 0;
+                        LoadingGlobalModified = false;
+                    }
+                });
+
+                Logger.Log("EeveeHelper", "Added IL Hook for EntityList.UpdateLists (Added)");
+            }
+
+            var awakeEntityLoc = -1;
+            if (cursor.TryGotoNext(MoveType.Before,
+                instr => instr.MatchLdloc(out awakeEntityLoc),
+                instr => true,
+                instr => true,
+                instr => instr.MatchCallvirt<Entity>("Awake"))) {
+
+                cursor.Emit(OpCodes.Ldarg_0);
+                cursor.Emit(OpCodes.Ldloc, addedEntityLoc);
+                cursor.EmitDelegate<Action<EntityList, Entity>>((entityList, entity) => {
+                    var component = entity.Get<TagAdderComponent>();
+                    if (component != null) {
+                        LoadingGlobalModified = true;
+                        LoadingGlobalTags = component.Tags;
+                        LastLoadedGlobalModified = entityList.ToAdd.Count;
+                    }
+                });
+
+                cursor.Index += 4;
+
+                cursor.Emit(OpCodes.Ldarg_0);
+                cursor.EmitDelegate<Action<EntityList>>(entityList => {
+                    if (LoadingGlobalModified) {
+                        foreach (var entity in entityList.ToAdd.Skip(LastLoadedGlobalModified))
+                            entity.Add(new TagAdderComponent(LoadingGlobalTags));
+                        LastLoadedGlobalModified = 0;
+                        LoadingGlobalModified = false;
+                    }
+                });
+
+                Logger.Log("EeveeHelper", "Added IL Hook for EntityList.UpdateLists (Awake)");
+            }
+        }
+
+        private static void Level_orig_LoadLevel(ILContext il) {
+            var cursor = new ILCursor(il);
+
+            HookLevelEntityLoading(cursor, "Entities");
+            HookLevelEntityLoading(cursor, "Triggers");
+        }
+
+        private static void HookLevelEntityLoading(ILCursor cursor, string type) {
+            if (!cursor.TryGotoNext(MoveType.After, instr => instr.MatchLdfld<LevelData>(type)))
+                return;
+
+            cursor.Emit(OpCodes.Ldarg_0);
+            cursor.Emit(OpCodes.Ldarg_2);
+            cursor.EmitDelegate<Func<List<EntityData>, Level, bool, List<EntityData>>>((list, self, isFromLoader) => {
+                if (isFromLoader) {
+                    if (type == "Entities")
+                        GlobalModifiedData.Clear();
+                    var newList = new List<EntityData>(list);
+                    foreach (var level in self.Session.MapData.Levels) {
+                        foreach (var modifier in level.Entities.Where(data => data.Name == GlobalModifier.ID)) {
+                            var whitelist = modifier.Attr("whitelist").Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                            var contain = new Rectangle((int)modifier.Position.X, (int)modifier.Position.Y, modifier.Width, modifier.Height);
+                            int tags = Tags.Global;
+                            if (modifier.Bool("frozenUpdate")) tags |= Tags.FrozenUpdate;
+                            if (modifier.Bool("pauseUpdate")) tags |= Tags.PauseUpdate;
+                            if (modifier.Bool("transitionUpdate")) tags |= Tags.TransitionUpdate;
+
+                            foreach (var entity in (type == "Entities" ? level.Entities : level.Triggers)) {
+                                if (entity != modifier && (whitelist.Length == 0 || whitelist.Any(str => entity.Name == str || entity.ID.ToString() == str))) {
+                                    var matched = false;
+                                    if (entity.Width != 0 && entity.Height != 0) {
+                                        var rect = new Rectangle((int)entity.Position.X, (int)entity.Position.Y, entity.Width, entity.Height);
+                                        matched = contain.Intersects(rect);
+                                    } else {
+                                        matched = contain.Contains((int)entity.Position.X, (int)entity.Position.Y);
+                                    }
+
+                                    if (matched) {
+                                        if (newList.Contains(entity))
+                                            newList.Remove(entity);
+                                        GlobalModifiedData.Add(entity);
+
+                                        var data = EeveeUtils.CloneEntityData(entity, self.Session.LevelData);
+                                        data.Values["globalModifierSpawned"] = tags;
+
+                                        newList.Add(data);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    return newList;
+                } else if (GlobalModifiedData.Count > 0) {
+                    return list.Except(GlobalModifiedData).ToList();
+                } else {
+                    return list;
+                }
+            });
+            Logger.Log("EeveeHelper", $"Added IL Hook for Level.orig_LoadLevel ({type} - 1)");
+
+            if (!cursor.TryGotoNext(MoveType.Before, instr => instr.MatchLdfld<EntityData>("ID")))
+                return;
+
+            cursor.Emit(OpCodes.Ldarg_0);
+            cursor.EmitDelegate<Func<EntityData, Level, EntityData>>((entityData, self) => {
+                var tags = 0;
+                if ((tags = entityData.Int("globalModifierSpawned", -1)) != -1) {
+                    LoadingGlobalModified = true;
+                    LoadingGlobalTags = tags;
+                    LastLoadedGlobalModified = self.Entities.ToAdd.Count;
+                }
+                return entityData;
+            });
+            Logger.Log("EeveeHelper", $"Added IL Hook for Level.orig_LoadLevel ({type} - 2)");
+
+            if (!cursor.TryGotoNext(MoveType.Before, instr => instr.MatchBrtrue(out _), instr => instr.MatchLeaveS(out _)))
+                return;
+
+            cursor.Emit(OpCodes.Ldarg_0);
+            cursor.EmitDelegate<Action<Level>>(self => {
+                if (LoadingGlobalModified) {
+                    foreach (var entity in self.Entities.ToAdd.Skip(LastLoadedGlobalModified))
+                        entity.Add(new TagAdderComponent(LoadingGlobalTags));
+                    LastLoadedGlobalModified = 0;
+                    LoadingGlobalModified = false;
+                }
+            });
+            Logger.Log("EeveeHelper", $"Added IL Hook for Level.orig_LoadLevel ({type} - 3)");
         }
 
         private static bool Collide_Check_Entity_Entity(On.Monocle.Collide.orig_Check_Entity_Entity orig, Entity a, Entity b) {
