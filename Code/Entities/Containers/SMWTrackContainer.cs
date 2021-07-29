@@ -46,13 +46,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
                 Gravity = data.Float("gravity"),
                 FallSpeed = data.Float("fallSpeed"),
                 GetPosition = () => Center,
-                SetPosition = (pos, move) => Container.DoMoveAction(() => Center = pos, (entity, delta) => {
-                    if (entity is Platform platform) {
-                        platform.MoveTo(Position + delta, EeveeUtils.GetTrackBoost(move, disableBoost));
-                    } else {
-                        entity.Position = Position + delta;
-                    }
-                })
+                SetPosition = (pos, move) => Container.DoMoveAction(() => Center = pos, (h, delta) => EeveeUtils.GetTrackBoost(move, disableBoost))
             });
 
             if (startOnTouch) {
@@ -73,7 +67,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
         }
 
         private bool PlayerCheck() {
-            foreach (var entity in Container.Contained) {
+            foreach (var entity in Container.GetEntities()) {
                 if (entity is Solid solid) {
                     if (solid.HasPlayerRider())
                         return true;
@@ -81,9 +75,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
                     if (jumpThru.HasPlayerRider())
                         return true;
                 } else {
-                    if (Scene.Tracker.GetEntities<Player>().Any(p => {
-                        return p.CollideCheck(entity);
-                    }))
+                    if (Scene.Tracker.GetEntities<Player>().Any(p => p.CollideCheck(entity)))
                         return true;
                 }
             }

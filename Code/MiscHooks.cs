@@ -3,6 +3,7 @@ using Celeste.Mod.EeveeHelper.Entities;
 using Celeste.Mod.EeveeHelper.Entities.Modifiers;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Mono.Cecil;
 using Mono.Cecil.Cil;
 using Monocle;
 using MonoMod.Cil;
@@ -18,6 +19,7 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.EeveeHelper {
     public static class MiscHooks {
         private static ILHook levelLoadHook;
+        private static ILHook zipMoverSequenceHook;
 
         public static void Load() {
             On.Monocle.Collide.Check_Entity_Entity += Collide_Check_Entity_Entity;
@@ -29,6 +31,7 @@ namespace Celeste.Mod.EeveeHelper {
             IL.Monocle.EntityList.UpdateLists += EntityList_UpdateLists;
 
             levelLoadHook = new ILHook(typeof(Level).GetMethod("orig_LoadLevel", BindingFlags.Public | BindingFlags.Instance), Level_orig_LoadLevel);
+            zipMoverSequenceHook = new ILHook(typeof(ZipMover).GetMethod("Sequence", BindingFlags.Instance | BindingFlags.NonPublic).GetStateMachineTarget(), ZipMover_Sequence);
         }
 
         public static void Unload() {
@@ -41,6 +44,7 @@ namespace Celeste.Mod.EeveeHelper {
             IL.Monocle.EntityList.UpdateLists -= EntityList_UpdateLists;
 
             levelLoadHook?.Dispose();
+            zipMoverSequenceHook?.Dispose();
         }
 
         private static HashSet<EntityData> GlobalModifiedData = new HashSet<EntityData>();
@@ -216,8 +220,8 @@ namespace Celeste.Mod.EeveeHelper {
             }
             var aContainer = a.Get<EntityContainer>();
             var bContainer = b.Get<EntityContainer>();
-            if ((aContainer != null && !aContainer.CollideWithContained && aContainer.Contained.Contains(b)) ||
-                (bContainer != null && !bContainer.CollideWithContained && bContainer.Contained.Contains(a))) {
+            if ((aContainer != null && !aContainer.CollideWithContained && aContainer.GetEntities().Contains(b)) ||
+                (bContainer != null && !bContainer.CollideWithContained && bContainer.GetEntities().Contains(a))) {
 
                 return false;
             }
@@ -237,13 +241,7 @@ namespace Celeste.Mod.EeveeHelper {
                 var collidable = self.Collidable;
                 container.Container.DoMoveAction(() => {
                     result = orig(self, moveH, onCollide, pusher);
-                }, (entity, offset) => {
-                    if (entity is Platform platform) {
-                        platform.MoveToX(self.Position.X + offset.X, platform.LiftSpeed.X + container.Speed.X);
-                    } else {
-                        entity.Position = self.Position + offset;
-                    }
-                });
+                }, (entity, move) => (entity is Platform platform) ? new Vector2(platform.LiftSpeed.X + container.Speed.X, platform.LiftSpeed.Y) : move);
             } else {
                 result = orig(self, moveH, onCollide, pusher);
             }
@@ -269,13 +267,7 @@ namespace Celeste.Mod.EeveeHelper {
                 var collidable = self.Collidable;
                 container.Container.DoMoveAction(() => {
                     result = orig(self, moveV, onCollide, pusher);
-                }, (entity, offset) => {
-                    if (entity is Platform platform) {
-                        platform.MoveToY(self.Position.Y + offset.Y, platform.LiftSpeed.Y + container.Speed.Y);
-                    } else {
-                        entity.Position.Y = self.Position.Y + offset.Y;
-                    }
-                });
+                }, (entity, move) => (entity is Platform platform) ? new Vector2(platform.LiftSpeed.X, platform.LiftSpeed.Y + container.Speed.Y) : move);
             } else {
                 result = orig(self, moveV, onCollide, pusher);
             }
@@ -374,6 +366,35 @@ namespace Celeste.Mod.EeveeHelper {
                         });
                     }
                 }
+            }
+        }
+
+        private static void ZipMover_Sequence(ILContext il) {
+            var cursor = new ILCursor(il);
+
+            int thisLoc = -1;
+            FieldReference fieldRef = null;
+
+            if (!cursor.TryGotoNext(MoveType.After,
+                instr => instr.MatchLdloc(out thisLoc),
+                instr => instr.MatchLdfld<Entity>("Position"),
+                instr => instr.MatchStfld(out fieldRef))) {
+
+                Logger.Log("EeveeHelper", $"Failed zip mover hook");
+                return;
+            }
+
+            while (cursor.TryGotoNext(MoveType.After, instr => instr.MatchLdfld(fieldRef))) {
+                Logger.Log("EeveeHelper", $"Hooking zip mover start field at position {cursor.Index}");
+
+                cursor.Emit(OpCodes.Ldloc, thisLoc);
+                cursor.EmitDelegate<Func<Vector2, ZipMover, Vector2>>((start, entity) => {
+                    var data = new DynData<ZipMover>(entity);
+                    if (data.Get<bool?>("zipMoverNodeHandled") == true) {
+                        return data.Get<Vector2>("start");
+                    }
+                    return start;
+                });
             }
         }
     }

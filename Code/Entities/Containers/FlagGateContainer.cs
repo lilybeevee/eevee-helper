@@ -46,6 +46,7 @@ namespace Celeste.Mod.EeveeHelper.Entities.Containers {
         private bool shaking;
         private float shakeTimer;
         private Vector2 shakeAmount;
+        private Random shakeRand;
 
         public FlagGateContainer(EntityData data, Vector2 offset): base(data.Position + offset) {
             Collider = new Hitbox(data.Width, data.Height);
@@ -72,6 +73,8 @@ namespace Celeste.Mod.EeveeHelper.Entities.Containers {
             playSounds = data.Bool("playSounds");
             var iconName = data.Attr("icon", "objects/switchgate/icon");
 
+            shakeRand = new Random("im so hecking gay".GetHashCode());
+
             startPos = anchorPos = Center;
             //wasEnabled = new bool[flags.Length];
 
@@ -94,7 +97,7 @@ namespace Celeste.Mod.EeveeHelper.Entities.Containers {
             Add(Container = new EntityContainerMover(data, true) {
                 OnFit = OnFit,
                 DefaultIgnored = e => e is FlagGateContainer,
-                OnAttach = e => Depth = Math.Min(Depth, e.Depth - 1)
+                OnAttach = h => Depth = Math.Min(Depth, h.Entity.Depth - 1)
             });
         }
 
@@ -126,13 +129,13 @@ namespace Celeste.Mod.EeveeHelper.Entities.Containers {
             }
 
             var newDepth = Depths.BGDecals - 1;
-            foreach (var entity in Container.Contained)
+            foreach (var entity in Container.GetEntities())
                 newDepth = Math.Min(newDepth, entity.Depth - 1);
             Depth = newDepth;
 
             if (shaking) {
                 if (Scene.OnInterval(0.04f)) {
-                    shakeAmount = Calc.Random.ShakeVector();
+                    shakeAmount = shakeRand.ShakeVector();
                 }
                 if (shakeTimer > 0f) {
                     shakeTimer -= Engine.DeltaTime;

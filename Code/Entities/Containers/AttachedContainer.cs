@@ -1,4 +1,5 @@
 ﻿using Celeste.Mod.EeveeHelper.Components;
+using Celeste.Mod.EeveeHelper.Handlers;
 using Celeste.Mod.Entities;
 using Microsoft.Xna.Framework;
 using Monocle;
@@ -18,6 +19,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
         private bool onlyY;
         private bool matchCollidable;
         private bool matchVisible;
+        private bool destroyable;
         private Vector2? node;
 
         private EntityContainerMover container;
@@ -30,6 +32,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
         private Dictionary<Entity, bool> lastMatchCollidable = new Dictionary<Entity, bool>();
         private Dictionary<Entity, bool> lastMatchVisible = new Dictionary<Entity, bool>();
         private Dictionary<Entity, Tuple<bool, bool, bool>> lastStates = new Dictionary<Entity, Tuple<bool, bool, bool>>();
+        private bool legacyDestroySometimesAnyway;
 
         public AttachedContainer(EntityData data, Vector2 offset) : base(data.Position + offset) {
             Collider = new Hitbox(data.Width, data.Height);
@@ -45,6 +48,8 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             onlyY = data.Bool("onlyY");
             matchCollidable = data.Bool("matchCollidable");
             matchVisible = data.Bool("matchVisible");
+            destroyable = data.Bool("destroyable");
+            legacyDestroySometimesAnyway = !data.Has("destroyable");
 
             var nodes = data.NodesOffset(offset);
             if (nodes.Length > 0)
@@ -63,7 +68,8 @@ namespace Celeste.Mod.EeveeHelper.Entities {
                     OnMove = (amount) => { if (attached) OnMove(amount); },
                     OnShake = (amount) => { if (attached) OnMove(amount); },
                     OnEnable = () => { if (attached) OnEnable(); },
-                    OnDisable = () => { if (attached) OnDisable(); }
+                    OnDisable = () => { if (attached) OnDisable(); },
+                    OnDestroy = () => { if (attached && (destroyable || legacyDestroySometimesAnyway)) RemoveSelf(); }
                 });
             }
         }
@@ -125,14 +131,26 @@ namespace Celeste.Mod.EeveeHelper.Entities {
                     container.DoMoveAction(() => Position += delta);
                     lastAttachedPos = newPos;
                 }
-                if (customAttached.Scene == null)
+                // legacy check
+                if (legacyDestroySometimesAnyway && customAttached.Scene == null) {
                     RemoveSelf();
+                    return;
+                }
             }
 
             var attachedTo = customAttached ?? mover?.Platform;
+
+            if (attachedTo != null && attachedTo.Scene == null) {
+                attachedTo = null;
+                if (destroyable) {
+                    RemoveSelf();
+                    return;
+                }
+            }
+
             var currentState = attachedTo != null ? Tuple.Create(attachedTo.Collidable, attachedTo.Visible) : Tuple.Create(true, true);
             if (attachedTo != null) {
-                foreach (var entity in container.Contained) {
+                foreach (var entity in container.GetEntities()) {
                     if (matchCollidable && currentState.Item1 != lastAttachedState.Item1) {
                         if (!currentState.Item1) {
                             lastMatchCollidable[entity] = entity.Collidable;
@@ -217,37 +235,25 @@ namespace Celeste.Mod.EeveeHelper.Entities {
         private void OnMove(Vector2 amount) {
             if (onlyX) amount.Y = 0f;
             if (onlyY) amount.X = 0f;
-            container.DoMoveAction(() => Position += amount, KeepLiftSpeed);
+            container.DoMoveAction(() => Position += amount, (h, move) => mover.Platform.LiftSpeed);
         }
 
         private void OnEnable() {
             Active = Visible = Collidable = true;
-            foreach (var entity in container.Contained) {
-                if (lastStates.ContainsKey(entity)) {
-                    var state = lastStates[entity];
-                    entity.Active = state.Item1;
-                    entity.Visible = state.Item2;
-                    entity.Collidable = state.Item3;
-                }
+            foreach (var entity in container.GetEntities()) {
+                var state = lastStates[entity];
+                entity.Active = state.Item1;
+                entity.Visible = state.Item2;
+                entity.Collidable = state.Item3;
             }
             lastStates.Clear();
         }
 
         private void OnDisable() {
             Active = Visible = Collidable = false;
-            foreach (var entity in container.Contained) {
-                if (!lastStates.ContainsKey(entity)) {
-                    lastStates.Add(entity, new Tuple<bool, bool, bool>(entity.Active, entity.Visible, entity.Collidable));
-                    entity.Active = entity.Visible = entity.Collidable = false;
-                }
-            }
-        }
-
-        private void KeepLiftSpeed(Entity entity, Vector2 offset) {
-            if (entity is Platform platform) {
-                platform.MoveTo(Position + offset, mover.Platform.LiftSpeed);
-            } else {
-                entity.Position = Position + offset;
+            foreach (var entity in container.GetEntities()) {
+                lastStates.Add(entity, Tuple.Create(entity.Active, entity.Visible, entity.Collidable));
+                entity.Active = entity.Visible = entity.Collidable = false;
             }
         }
     }

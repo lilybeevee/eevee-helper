@@ -1,4 +1,6 @@
-﻿using Microsoft.Xna.Framework;
+﻿using Celeste.Mod.EeveeHelper.Handlers;
+using Celeste.Mod.Helpers;
+using Microsoft.Xna.Framework;
 using Monocle;
 using MonoMod.Utils;
 using System;
@@ -9,6 +11,8 @@ using System.Threading.Tasks;
 
 namespace Celeste.Mod.EeveeHelper.Components {
     public class EntityContainerMover : EntityContainer {
+        private static Dictionary<Type, List<Type>> EntityHandlers = new Dictionary<Type, List<Type>>();
+
         private static HashSet<string> IgnoredAnchors = new HashSet<string>() {
             "Position", "ExactPosition", "TopLeft", "TopCenter", "TopRight", "Center", "CenterLeft", "CenterRight", "BottomLeft", "BottomCenter", "BottomRight"
         };
@@ -37,7 +41,7 @@ namespace Celeste.Mod.EeveeHelper.Components {
             entity.Add(new TransitionListener {
                 OnOutBegin = () => {
                     if (!Entity.TagCheck(Tags.Persistent))
-                        Contained.RemoveAll(e => e.TagCheck(Tags.Persistent));
+                        Contained.RemoveAll(h => h.Entity != null && h.Entity.TagCheck(Tags.Persistent));
                 }
             });
         }
@@ -51,7 +55,7 @@ namespace Celeste.Mod.EeveeHelper.Components {
 
         public override void EntityRemoved(Scene scene) {
             base.EntityRemoved(scene);
-            RemoveContained();
+            DestroyContained();
         }
 
         public override void Update() {
@@ -76,23 +80,19 @@ namespace Celeste.Mod.EeveeHelper.Components {
             base.Update();
         }
 
-        protected override void AddContained(Entity entity) {
-            base.AddContained(entity);
+        protected override void AddContained(IEntityHandler handler) {
+            base.AddContained(handler);
 
             if (IgnoreAnchors)
                 return;
 
-            var data = new DynamicData(entity);
-            if (!data.TryGet<List<string>>("entityContainerAnchors", out _)) {
-                var anchors = new List<string>();
-                foreach (var pair in data)
-                    if (pair.Value is Vector2 vector && !IgnoredAnchors.Contains(pair.Key) && (vector == EeveeUtils.GetPosition(entity) || CommonAnchors.Contains(pair.Key))) {
-                        Console.WriteLine($"Adding anchor: {pair.Key}");
-                        anchors.Add(pair.Key);
-                    }
-
-                if (anchors.Count > 0)
-                    data.Set("entityContainerAnchors", anchors);
+            if (!(handler is IAnchorProvider)) {
+                var data = new DynamicData(handler.Entity);
+                if (!data.TryGet<List<string>>("entityContainerAnchors", out _)) {
+                    var anchors = FindAnchors(handler.Entity);
+                    if (anchors.Count > 0)
+                        data.Set("entityContainerAnchors", anchors);
+                }
             }
         }
 
@@ -116,48 +116,58 @@ namespace Celeste.Mod.EeveeHelper.Components {
             Padding = new Vector4(Entity.Width / 2f, Entity.Height / 2f, Entity.Width / 2f, Entity.Height / 2f);
         }
 
-        public void DoMoveAction(Action moveAction, Action<Entity, Vector2> moveFinalizer = null) {
+        public void DoMoveAction(Action moveAction, Func<Entity, Vector2, Vector2?> liftSpeedGetter = null) {
             Cleanup();
             var anchorOffsets = new Dictionary<Entity, Dictionary<string, Vector2>>();
-            var offsets = new Dictionary<Entity, Vector2>();
             var collidable = new Dictionary<Entity, bool>();
             var startPosition = EeveeUtils.GetPosition(Entity);
-            foreach (var entity in Contained) {
-                var data = new DynamicData(entity);
-                if (!IgnoreAnchors) {
-                    var anchorNames = data.Get<List<string>>("entityContainerAnchors");
-                    if (anchorNames != null) {
-                        var currentAnchors = new Dictionary<string, Vector2>();
-                        foreach (var name in anchorNames)
-                            currentAnchors.Add(name, data.Get<Vector2>(name) - startPosition);
-                        anchorOffsets.Add(entity, currentAnchors);
-                    }
+            foreach (var handler in Contained) {
+                if (handler is IMoveable moveable)
+                    moveable.PreMove();
+
+                if (!collidable.ContainsKey(handler.Entity)) {
+                    collidable.Add(handler.Entity, handler.Entity.Collidable);
+                    handler.Entity.Collidable = false;
                 }
-                offsets.Add(entity, EeveeUtils.GetPosition(entity) - startPosition);
-                collidable.Add(entity, entity.Collidable);
-                entity.Collidable = false;
             }
             moveAction();
             var selfCollidable = Entity.Collidable;
             Entity.Collidable = false;
             OnPreMove?.Invoke();
             var newPosition = EeveeUtils.GetPosition(Entity);
-            foreach (var entity in Contained) {
-                entity.Collidable = collidable[entity];
-                if (!IgnoreAnchors && anchorOffsets.ContainsKey(entity)) {
-                    var data = new DynamicData(entity);
-                    var currentAnchors = anchorOffsets[entity];
-                    foreach (var pair in currentAnchors)
-                        data.Set(pair.Key, newPosition + pair.Value);
+            var moveOffset = newPosition - startPosition;
+            var toMove = GetEntities();
+            foreach (var handler in Contained) {
+                if (collidable.ContainsKey(handler.Entity)) {
+                    handler.Entity.Collidable = collidable[handler.Entity];
+                    collidable.Remove(handler.Entity);
                 }
-                if (moveFinalizer != null) {
-                    moveFinalizer(entity, offsets[entity]);
-                } else {
-                    if (entity is Platform platform) {
-                        platform.MoveTo(newPosition + offsets[entity]);
-                    } else {
-                        entity.Position = newPosition + offsets[entity];
+                if (!IgnoreAnchors) {
+                    var anchors = GetAnchors(handler);
+                    var data = new InheritedDynData(handler.Entity);
+                    foreach (var anchor in anchors) {
+                        data.Set(anchor, data.Get<Vector2>(anchor) + moveOffset);
                     }
+                }
+                if (handler is IMoveable moveable) {
+                    var liftSpeed = liftSpeedGetter?.Invoke(handler.Entity, moveOffset);
+                    if (moveable.Move(moveOffset, liftSpeed) && toMove.Contains(handler.Entity)) {
+                        toMove.Remove(handler.Entity);
+                    }
+                }
+            }
+            foreach (var entity in toMove) {
+                if (entity is Platform platform) {
+                    var liftSpeed = liftSpeedGetter?.Invoke(entity, moveOffset);
+                    if (liftSpeed != null) {
+                        platform.MoveH(moveOffset.X, liftSpeed.Value.X);
+                        platform.MoveV(moveOffset.Y, liftSpeed.Value.Y);
+                    } else {
+                        platform.MoveH(moveOffset.X);
+                        platform.MoveV(moveOffset.Y);
+                    }
+                } else {
+                    entity.Position += moveOffset;
                 }
             }
             Entity.Collidable = selfCollidable;
@@ -166,13 +176,53 @@ namespace Celeste.Mod.EeveeHelper.Components {
 
         public void DoIgnoreCollision(Action action) {
             var lastCollidable = new Dictionary<Entity, bool>();
-            foreach (var entity in Contained) {
+            foreach (var entity in GetEntities()) {
                 lastCollidable.Add(entity, entity.Collidable);
                 entity.Collidable = false;
             }
             action();
-            foreach (var entity in Contained)
-                entity.Collidable = lastCollidable[entity];
+            foreach (var pair in lastCollidable) {
+                pair.Key.Collidable = pair.Value;
+            }
         }
+
+        public List<string> GetAnchors(IEntityHandler handler) {
+            return HandlerUtils.GetAs<IAnchorProvider, List<string>>(handler, (provider) => provider.GetAnchors(), (entity) => {
+                var data = new DynamicData(handler.Entity);
+                var anchorNames = data.Get<List<string>>("entityContainerAnchors");
+                if (anchorNames != null)
+                    return anchorNames;
+                return null;
+            }) ?? new List<string>();
+        }
+
+        public static List<string> FindAnchors(Entity entity) {
+            var result = new List<string>();
+            var data = new InheritedDynData(entity);
+            foreach (var pair in data) {
+                if (pair.Value is Vector2 vector && !IgnoredAnchors.Contains(pair.Key) && (vector == EeveeUtils.GetPosition(entity) || CommonAnchors.Contains(pair.Key))) {
+                    result.Add(pair.Key);
+                }
+            }
+            return result;
+        }
+
+        public static void AddEntityHandler(Type entityType, Type handlerType) {
+            foreach (var type in FakeAssembly.GetEntryAssembly().GetTypesSafe()) {
+                if (entityType.IsAssignableFrom(type)) {
+                    Console.WriteLine($"Registering handler {handlerType.Name} [{type.Name} : {entityType.Name}]");
+                    if (!EntityHandlers.ContainsKey(type)) {
+                        EntityHandlers.Add(type, new List<Type>());
+                    }
+                    EntityHandlers[type].Add(handlerType);
+                }
+            }
+        }
+
+        public static void AddEntityHandler<H>(Type entityType) where H : EntityHandler
+            => AddEntityHandler(entityType, typeof(H));
+
+        public static void AddEntityHandler<E, H>() where E : Entity where H : EntityHandler
+            => AddEntityHandler(typeof(E), typeof(H));
     }
 }

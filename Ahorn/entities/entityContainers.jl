@@ -3,32 +3,37 @@ module EeveeHelperEntityContainers
 using ..Ahorn, Maple, Ahorn.Selection
 
 @mapdef Entity "EeveeHelper/HoldableContainer" HoldableContainer(x::Integer, y::Integer, width::Integer=8, height::Integer=8,
-    whitelist::String="", blacklist::String="", fitContained::Bool=true, ignoreAnchors::Bool=false, containMode::String="RoomStart", containFlag::String="",
+    whitelist::String="", blacklist::String="", containMode::String="RoomStart", containFlag::String="",
+    fitContained::Bool=true, ignoreAnchors::Bool=false, forceStandardBehavior::Bool=false,
     gravity::Bool=true, holdable::Bool=true, noDuplicate::Bool=false, slowFall::Bool=false, slowRun::Bool=true, destroyable::Bool=true, tutorial::Bool=false,
     respawn::Bool=false, waitForGrab::Bool=false)
 @mapdef Entity "EeveeHelper/AttachedContainer" AttachedContainer(x::Integer, y::Integer, width::Integer=8, height::Integer=8,
-    whitelist::String="", blacklist::String="", fitContained::Bool=true, ignoreAnchors::Bool=false, containMode::String="RoomStart", containFlag::String="",
+    whitelist::String="", blacklist::String="", containMode::String="RoomStart", containFlag::String="",
+    fitContained::Bool=true, ignoreAnchors::Bool=false, forceStandardBehavior::Bool=false,
     attachMode::String="RoomStart", attachFlag::String="", attachTo::String="", restrictToNode::Bool=true, onlyX::Bool=false, onlyY::Bool=false,
-    matchCollidable::Bool=false, matchVisible::Bool=false)
+    matchCollidable::Bool=false, matchVisible::Bool=false, destroyable::Bool=true)
 @mapdef Entity "EeveeHelper/FloatyContainer" FloatyContainer(x::Integer, y::Integer, width::Integer=8, height::Integer=8,
-    whitelist::String="", blacklist::String="", ignoreAnchors::Bool=false, containMode::String="RoomStart", containFlag::String="",
+    whitelist::String="", blacklist::String="", containMode::String="RoomStart", containFlag::String="",
+    ignoreAnchors::Bool=false, forceStandardBehavior::Bool=false,
     floatSpeed::Number=1.0, floatMove::Number=4.0, pushSpeed::Number=1.0, pushMove::Number=8.0, sinkSpeed::Number=1.0, sinkMove::Number=12.0,
     disableSpawnOffset::Bool=false, disablePush::Bool=false)
 @mapdef Entity "EeveeHelper/SMWTrackContainer" SMWTrackContainer(x::Integer, y::Integer, width::Integer=8, height::Integer=8,
-    whitelist::String="", blacklist::String="", fitContained::Bool=true, ignoreAnchors::Bool=false, containMode::String="RoomStart", containFlag::String="",
+    whitelist::String="", blacklist::String="", containMode::String="RoomStart", containFlag::String="",
+    fitContained::Bool=true, ignoreAnchors::Bool=false, forceStandardBehavior::Bool=false,
     moveSpeed::Number=100.0, fallSpeed::Number=200.0, gravity::Number=200.0, direction::String="Right", moveFlag::String="", startOnTouch::Bool=false,
     disableBoost::Bool=false)
 @mapdef Entity "EeveeHelper/FlagGateContainer" FlagGateContainer(x::Integer, y::Integer, width::Integer=8, height::Integer=8,
-    whitelist::String="", blacklist::String="", fitContained::Bool=true, ignoreAnchors::Bool=false, containMode::String="RoomStart", containFlag::String="",
+    whitelist::String="", blacklist::String="", containMode::String="RoomStart", containFlag::String="",
+    fitContained::Bool=true, ignoreAnchors::Bool=false, forceStandardBehavior::Bool=false,
     moveFlag::String="", shakeTime::Number=0.5, moveTime::Number=2.0, easing::String="CubeOut", icon::String="objects/switchgate/icon",
     inactiveColor::String="5FCDE4", activeColor::String="FFFFFF", finishColor::String="F141DF",
     staticFit::Bool=false, canReturn::Bool=false, iconVisible::Bool=true, playSounds::Bool=true)
 
 @mapdef Entity "EeveeHelper/FlagToggleModifier" FlagToggleModifier(x::Integer, y::Integer, width::Integer=8, height::Integer=8,
-    whitelist::String="", blacklist::String="", containMode::String="RoomStart", containFlag::String="",
+    whitelist::String="", blacklist::String="", containMode::String="RoomStart", containFlag::String="", forceStandardBehavior::Bool=false,
     flag::String="")
 @mapdef Entity "EeveeHelper/CollidableModifier" CollidableModifier(x::Integer, y::Integer, width::Integer=8, height::Integer=8,
-    whitelist::String="", blacklist::String="", containMode::String="RoomStart", containFlag::String="",
+    whitelist::String="", blacklist::String="", containMode::String="RoomStart", containFlag::String="", forceStandardBehavior::Bool=false,
     noCollide::Bool=false, solidify::Bool=false)
 @mapdef Entity "EeveeHelper/GlobalModifier" GlobalModifier(x::Integer, y::Integer, width::Integer=8, height::Integer=8,
     whitelist::String="", frozenUpdate::Bool=false, pauseUpdate::Bool=false, transitionUpdate::Bool=false)

@@ -1,7 +1,10 @@
-﻿using Celeste.Mod.EeveeHelper.Components;
+﻿using Celeste.Mod.EeveeHelper.Compat;
+using Celeste.Mod.EeveeHelper.Components;
+using Celeste.Mod.EeveeHelper.Handlers;
 using Celeste.Mod.Entities;
 using Microsoft.Xna.Framework;
 using Monocle;
+using MonoMod.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,7 +20,7 @@ namespace Celeste.Mod.EeveeHelper.Entities.Modifiers {
         private bool notFlag;
 
         private EntityContainer container;
-        private Dictionary<Entity, EntityState> entityStates = new Dictionary<Entity, EntityState>();
+        private Dictionary<IEntityHandler, object> entityStates = new Dictionary<IEntityHandler, object>();
 
         public FlagToggleModifier(EntityData data, Vector2 offset) : base(data.Position + offset) {
             Collider = new Hitbox(data.Width, data.Height);
@@ -50,26 +53,32 @@ namespace Celeste.Mod.EeveeHelper.Entities.Modifiers {
         }
 
         private void DisableEntities() {
-            foreach (var entity in container.Contained) {
-                if (!entityStates.ContainsKey(entity))
-                    entityStates.Add(entity, new EntityState(entity));
-                EntityState.Disable(entity);
+            foreach (var handler in container.Contained) {
+                if (!entityStates.ContainsKey(handler)) {
+                    var state = HandlerUtils.GetAs<IToggleable, object>(handler, t => t.SaveState(), e => new EntityState(e));
+                    if (state != null) {
+                        entityStates.Add(handler, state);
+                    }
+                }
+                HandlerUtils.DoAs<IToggleable>(handler, t => t.Disable(), e => EntityState.Disable(e));
             }
         }
 
         private void EnableEntities() {
-            foreach (var entity in container.Contained)
-                EnableEntity(entity);
+            foreach (var handler in container.Contained)
+                EnableEntity(handler);
 
             entityStates.Clear();
         }
 
-        private void EnableEntity(Entity entity) {
-            if (entityStates.ContainsKey(entity))
-                entityStates[entity].Apply(entity);
+        private void EnableEntity(IEntityHandler handler) {
+            if (entityStates.ContainsKey(handler)) {
+                var state = entityStates[handler];
+                HandlerUtils.DoAs<IToggleable>(handler, t => t.ReadState(state), e => ((EntityState)state).Apply(e));
+            }
         }
 
-        private struct EntityState {
+        public struct EntityState {
             bool Active;
             bool Visible;
             bool Collidable;

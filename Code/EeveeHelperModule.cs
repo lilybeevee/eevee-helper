@@ -1,9 +1,13 @@
-﻿using Celeste.Mod.EeveeHelper.Components;
+﻿using Celeste.Mod.EeveeHelper.Compat;
+using Celeste.Mod.EeveeHelper.Components;
 using Celeste.Mod.EeveeHelper.Effects;
 using Celeste.Mod.EeveeHelper.Entities;
+using Celeste.Mod.EeveeHelper.Handlers;
+using Celeste.Mod.EeveeHelper.Handlers.Impl;
 using Mono.Cecil.Cil;
 using Monocle;
 using MonoMod.Cil;
+using MonoMod.Utils;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -16,6 +20,9 @@ namespace Celeste.Mod.EeveeHelper {
             Instance = this;
         }
 
+        public static bool AdventureHelperLoaded { get; set; }
+        public static bool CollabUtils2Loaded { get; set; }
+
         public override void Load() {
             MiscHooks.Load();
             RoomChest.Load();
@@ -23,6 +30,14 @@ namespace Celeste.Mod.EeveeHelper {
             PatientBooster.Load();
 
             Everest.Events.Level.OnLoadBackdrop += this.OnLoadBackdrop;
+
+            EntityHandler.RegisterInherited<TrackSpinner>((entity, container) => new TrackSpinnerHandler(entity));
+            EntityHandler.RegisterInherited<RotateSpinner>((entity, container) => new RotateSpinnerHandler(entity));
+
+            EntityHandler.RegisterInherited<ZipMover>((entity, container) => new ZipMoverNodeHandler(entity, true),
+                (entity, container) => ZipMoverNodeHandler.InsideCheck(container, true, new DynData<ZipMover>(entity as ZipMover)));
+            EntityHandler.RegisterInherited<ZipMover>((entity, container) => new ZipMoverNodeHandler(entity, false),
+                (entity, container) => ZipMoverNodeHandler.InsideCheck(container, false, new DynData<ZipMover>(entity as ZipMover)));
         }
 
         public override void Unload() {
@@ -30,6 +45,17 @@ namespace Celeste.Mod.EeveeHelper {
             RoomChest.Unload();
             HoldableTiles.Unload();
             PatientBooster.Unload();
+        }
+
+        public override void Initialize() {
+            AdventureHelperLoaded = Everest.Loader.DependencyLoaded(new EverestModuleMetadata {
+                Name = "AdventureHelper",
+                VersionString = "1.5.1"
+            });
+
+            if (AdventureHelperLoaded) {
+                AdventureHelperCompat.Initialize();
+            }
         }
 
         private Backdrop OnLoadBackdrop(MapData map, BinaryPacker.Element child, BinaryPacker.Element above) {

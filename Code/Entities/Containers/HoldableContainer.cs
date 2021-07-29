@@ -84,8 +84,8 @@ namespace Celeste.Mod.EeveeHelper.Entities {
                 Add(new DepthPartner(Depths.Player + 1) {
                     OnUpdate = () => {
                         if (Hold.IsHeld || destroyed) {
-                            foreach (var entity in Container.Contained)
-                                entity.Collidable = false;
+                            foreach (var handler in Container.Contained)
+                                handler.Entity.Collidable = false;
                         }
                     }
                 });
@@ -93,8 +93,8 @@ namespace Celeste.Mod.EeveeHelper.Entities {
                 Add(new TransitionListener {
                     OnOutBegin = () => {
                         if (Hold.IsHeld) {
-                            foreach (var entity in Container.Contained)
-                                entity.AddTag(Tags.Persistent);
+                            foreach (var handler in Container.Contained)
+                                handler.Entity?.AddTag(Tags.Persistent);
                         }
                     }
                 });
@@ -127,7 +127,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             AddTag(Tags.Persistent);
             wasCollidable.Clear();
             wasPersistent.Clear();
-            foreach (var entity in Container.Contained) {
+            foreach (var entity in Container.GetEntities()) {
                 wasCollidable.Add(entity, entity.Collidable);
                 var persistent = entity.TagCheck(Tags.Persistent);
                 wasPersistent.Add(entity, persistent);
@@ -145,7 +145,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             }
             RemoveTag(Tags.Persistent);
             if (!destroyed) {
-                foreach (var entity in Container.Contained) {
+                foreach (var entity in Container.GetEntities()) {
                     if (!(wasPersistent.ContainsKey(entity) && wasPersistent[entity]))
                         entity.RemoveTag(Tags.Persistent);
                     entity.Collidable = wasCollidable.ContainsKey(entity) ? wasCollidable[entity] : true;
@@ -245,14 +245,14 @@ namespace Celeste.Mod.EeveeHelper.Entities {
                 if (Container.Contained.Count == 0) return;
 
                 if (wasDestroyed) {
-                    foreach (var entity in Container.Contained) {
+                    foreach (var entity in Container.GetEntities()) {
                         if (wasCollidable.ContainsKey(entity) && wasCollidable[entity])
                             entity.Collidable = true;
                     }
                 } else if (destroyable) {
                     foreach (SeekerBarrier barrier in Scene.Tracker.GetEntities<SeekerBarrier>()) {
                         barrier.Collidable = true;
-                        var collided = CollideCheck(barrier) && !Container.Contained.Contains(barrier);
+                        var collided = CollideCheck(barrier) && !Container.GetEntities().Contains(barrier);
                         barrier.Collidable = false;
 
                         if (collided) {
@@ -274,7 +274,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
                 wasDestroyed = false;
             } else if (!wasDestroyed) {
                 wasCollidable.Clear();
-                foreach (var entity in Container.Contained) {
+                foreach (var entity in Container.GetEntities()) {
                     wasCollidable[entity] = entity.Collidable;
                     entity.Collidable = false;
                 }
@@ -283,7 +283,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
 
             if (holdable && Hold.IsHeld) {
                 prevLiftSpeed = Vector2.Zero;
-                foreach (var entity in Container.Contained) {
+                foreach (var entity in Container.GetEntities()) {
                     entity.Collidable = false;
                 }
             } else {
@@ -386,11 +386,11 @@ namespace Celeste.Mod.EeveeHelper.Entities {
         }
 
         public override bool IsRiding(Solid solid) {
-            return HasGravity && !Container.Contained.Contains(solid) && base.IsRiding(solid);
+            return HasGravity && !Container.GetEntities().Contains(solid) && base.IsRiding(solid);
         }
 
         public override bool IsRiding(JumpThru jumpThru) {
-            return HasGravity && !Container.Contained.Contains(jumpThru) && base.IsRiding(jumpThru);
+            return HasGravity && !Container.GetEntities().Contains(jumpThru) && base.IsRiding(jumpThru);
         }
 
         private IEnumerator DestroyRoutine() {
@@ -405,7 +405,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             yield return 0.2f;
             if (!respawn) {
                 Container.FitContained = false;
-                Container.RemoveContained();
+                Container.DestroyContained();
             } else {
                 grabbedOnce = false;
                 Speed = Vector2.Zero;

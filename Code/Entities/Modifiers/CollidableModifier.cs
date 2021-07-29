@@ -26,10 +26,10 @@ namespace Celeste.Mod.EeveeHelper.Entities.Modifiers {
             solidify = data.Bool("solidify");
 
             Add(container = new EntityContainer(data) {
-                IsValid = e => !(e is Solidifier solidifier && container.Contained.Contains(solidifier.Entity)),
+                IsValid = e => !(e is Solidifier solidifier && container.GetEntities().Contains(solidifier.Entity)),
                 DefaultIgnored = e => e.Get<EntityContainer>() != null,
-                OnAttach = OnAttach,
-                OnDetach = OnDetach
+                OnAttach = h => OnAttach(h.Entity),
+                OnDetach = h => OnDetach(h.Entity)
             });
         }
 
@@ -64,7 +64,7 @@ namespace Celeste.Mod.EeveeHelper.Entities.Modifiers {
             base.Update();
 
             if (noCollide) {
-                foreach (var entity in container.Contained)
+                foreach (var entity in container.GetEntities())
                     entity.Collidable = false;
             }
         }

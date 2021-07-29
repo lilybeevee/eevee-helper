@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+﻿using Celeste.Mod.EeveeHelper.Handlers;
+using Microsoft.Xna.Framework;
 using Monocle;
 using MonoMod.Utils;
 using System;
@@ -16,22 +17,24 @@ namespace Celeste.Mod.EeveeHelper.Components {
             Always
         }
 
-        public List<Entity> Contained = new List<Entity>();
+        public List<IEntityHandler> Contained = new List<IEntityHandler>();
+        public Dictionary<Entity, List<IEntityHandler>> HandlersFor = new Dictionary<Entity, List<IEntityHandler>>();
         public List<Tuple<string, int>> Blacklist;
         public List<Tuple<string, int>> Whitelist;
         public ContainMode Mode;
         public string ContainFlag;
         public bool NotFlag;
+        public bool ForceStandardBehavior;
 
         public Func<Entity, bool> IsValid;
         public Func<Entity, bool> DefaultIgnored;
-        public Action<Entity> OnAttach;
-        public Action<Entity> OnDetach;
+        public Action<IEntityHandler> OnAttach;
+        public Action<IEntityHandler> OnDetach;
 
         public bool Attached;
         public bool CollideWithContained;
 
-        private List<Entity> containedSaved = new List<Entity>();
+        private List<IEntityHandler> containedSaved = new List<IEntityHandler>();
 
         public EntityContainer() : base(true, true) { }
 
@@ -42,6 +45,7 @@ namespace Celeste.Mod.EeveeHelper.Components {
             var flag = EeveeUtils.ParseFlagAttr(data.Attr("containFlag"));
             ContainFlag = flag.Item1;
             NotFlag = flag.Item2;
+            ForceStandardBehavior = data.Bool("forceStandardBehavior", true);
         }
 
         public override void EntityAwake() {
@@ -82,8 +86,54 @@ namespace Celeste.Mod.EeveeHelper.Components {
             }
         }
 
-        protected virtual void AddContained(Entity entity) {
-            Contained.Add(entity);
+        public virtual List<IEntityHandler> GetHandlersFor(Entity entity) {
+            if (entity == null || !HandlersFor.ContainsKey(entity))
+                return new List<IEntityHandler>();
+            else
+                return HandlersFor[entity];
+        }
+
+        public virtual bool HasHandlerFor<T>(Entity entity) {
+            if (entity == null || !HandlersFor.ContainsKey(entity))
+                return false;
+            return HandlersFor[entity].Any(h => h is T);
+        }
+
+        public virtual bool IsFirstHandler(IEntityHandler handler) {
+            if (!HandlersFor.ContainsKey(handler.Entity))
+                return true;
+            return HandlersFor[handler.Entity][0] == handler;
+        }
+
+        public virtual List<Entity> GetEntities() {
+            var list = new List<Entity>();
+            foreach (var handler in Contained) {
+                if (!list.Contains(handler.Entity))
+                    list.Add(handler.Entity);
+            }
+            return list;
+        }
+
+        protected virtual void AddContained(IEntityHandler handler) {
+            handler.OnAttach(this);
+            Contained.Add(handler);
+
+            List<IEntityHandler> handlers;
+            if (!HandlersFor.TryGetValue(handler.Entity, out handlers)) {
+                handlers = new List<IEntityHandler>();
+                HandlersFor.Add(handler.Entity, handlers);
+            }
+            handlers.Add(handler);
+        }
+
+        protected virtual void RemoveContained(IEntityHandler handler) {
+            Contained.Remove(handler);
+            var handlers = HandlersFor[handler.Entity];
+            handlers.Remove(handler);
+            if (handlers.Count == 0) {
+                HandlersFor.Remove(handler.Entity);
+            }
+            handler.OnDetach(this);
         }
 
         protected List<Tuple<string, int>> ParseList(string list) {
@@ -96,11 +146,20 @@ namespace Celeste.Mod.EeveeHelper.Components {
             }).ToList();
         }
 
-        protected virtual bool WhitelistCheck(Entity entity, int count) {
-            if (Blacklist.Any(pair => pair.Item1 == entity.GetType().Name && (pair.Item2 == -1 || count == pair.Item2)))
+        protected virtual bool WhitelistCheck(Entity entity) {
+            if (Blacklist.Any(pair => pair.Item1 == entity.GetType().Name))
                 return false;
             if (Whitelist.Count == 0)
                 return !((DefaultIgnored?.Invoke(entity) ?? false) || entity is Player || entity is SolidTiles || entity is BackgroundTiles || entity is Decal || entity is Trigger);
+            else
+                return Whitelist.Any(pair => pair.Item1 == entity.GetType().Name);
+        }
+
+        protected virtual bool WhitelistCheckCount(Entity entity, int count) {
+            if (Blacklist.Any(pair => pair.Item1 == entity.GetType().Name && (pair.Item2 == -1 || count == pair.Item2)))
+                return false;
+            if (Whitelist.Count == 0)
+                return true;
             else
                 return Whitelist.Any(pair => pair.Item1 == entity.GetType().Name && (pair.Item2 == -1 || count == pair.Item2));
         }
@@ -109,56 +168,67 @@ namespace Celeste.Mod.EeveeHelper.Components {
             if (first || Mode != ContainMode.RoomStart) {
                 var counts = new Dictionary<Type, int>();
                 foreach (var entity in Scene.Entities) {
-                    if (entity != Entity && (Mode != ContainMode.Always || !Contained.Contains(entity)) && ContainsEntity(entity) && (IsValid?.Invoke(entity) ?? true)) {
+                    if (entity != Entity && WhitelistCheck(entity) && (IsValid?.Invoke(entity) ?? true)) {
                         if (!counts.ContainsKey(entity.GetType()))
                             counts.Add(entity.GetType(), 0);
 
-                        if (WhitelistCheck(entity, ++counts[entity.GetType()])) {
-                            AddContained(entity);
-                            OnAttach?.Invoke(entity);
+                        var anyInside = false;
+                        var handlers = EntityHandler.CreateAll(entity, this, ForceStandardBehavior);
+                        foreach (var handler in handlers) {
+                            if (handler.IsInside(this)) {
+                                anyInside = true;
+
+                                if ((Mode != ContainMode.Always || !Contained.Contains(handler)) && WhitelistCheckCount(entity, counts[entity.GetType()] + 1)) {
+                                    AddContained(handler);
+                                    OnAttach?.Invoke(handler);
+                                }
+                            }
                         }
+
+                        if (anyInside)
+                            counts[entity.GetType()]++;
                     }
                 }
             } else {
-                Contained = new List<Entity>(containedSaved);
                 Cleanup();
-                foreach (var entity in Contained)
-                    OnAttach?.Invoke(entity);
+                foreach (var handler in containedSaved) {
+                    AddContained(handler);
+                    OnAttach?.Invoke(handler);
+                }
                 containedSaved.Clear();
             }
         }
 
         protected virtual void DetachAll() {
-            var lastContained = new List<Entity>(Contained);
+            var lastContained = new List<IEntityHandler>(Contained);
             if (Mode == ContainMode.RoomStart)
                 containedSaved = lastContained;
 
-            Contained.Clear();
-            
-            foreach (var entity in lastContained)
-                OnDetach?.Invoke(entity);
+            foreach (var handler in lastContained) {
+                RemoveContained(handler);
+                OnDetach?.Invoke(handler);
+            }
         }
 
         protected virtual void DetachOutside() {
-            var toRemove = new List<Entity>();
-            foreach (var entity in Contained) {
-                if (!ContainsEntity(entity)) {
-                    toRemove.Add(entity);
+            var toRemove = new List<IEntityHandler>();
+            foreach (var handler in Contained) {
+                if (!handler.IsInside(this)) {
+                    toRemove.Add(handler);
                 }
             }
-            foreach (var entity in toRemove) {
-                Console.WriteLine($"Detaching {entity.GetType().Name}");
-                Contained.Remove(entity);
-                OnDetach?.Invoke(entity);
+            foreach (var handler in toRemove) {
+                RemoveContained(handler);
+                OnDetach?.Invoke(handler);
             }
 
         }
 
         protected void Cleanup() {
-            Contained.RemoveAll(e => e.Scene == null);
+            Contained.RemoveAll(e => e.Entity?.Scene == null);
         }
 
-        public bool ContainsEntity(Entity entity) {
+        public bool CheckCollision(Entity entity) {
             if (entity.Collider != null) {
                 var collidable = entity.Collidable;
                 var parentCollidable = Entity.Collidable;
@@ -176,29 +246,21 @@ namespace Celeste.Mod.EeveeHelper.Components {
         }
 
         public Rectangle GetContainedBounds() {
-            var topLeft = Vector2.Zero;
-            var bottomRight = Vector2.Zero;
+            var bounds = new Rectangle();
 
             var first = true;
-            foreach (var entity in Contained) {
-                if (entity.Collider != null) {
-                    topLeft = first ? entity.TopLeft : Vector2.Min(topLeft, entity.TopLeft);
-                    bottomRight = first ? entity.BottomRight : Vector2.Max(bottomRight, entity.BottomRight);
-                } else {
-                    topLeft = first ? entity.Position : Vector2.Min(topLeft, entity.Position);
-                    bottomRight = first ? entity.Position : Vector2.Max(bottomRight, entity.Position);
-                }
+            foreach (var handler in Contained) {
+                var rect = handler.GetBounds();
+                bounds = first ? rect : Rectangle.Union(bounds, rect);
                 first = false;
             }
 
-            return new Rectangle((int)topLeft.X, (int)topLeft.Y, (int)(bottomRight.X - topLeft.X), (int)(bottomRight.Y - topLeft.Y));
+            return bounds;
         }
 
-        public void RemoveContained() {
-            foreach (var entity in Contained) {
-                if (entity is Platform platform)
-                    platform.DestroyStaticMovers();
-                entity.RemoveSelf();
+        public void DestroyContained() {
+            foreach (var handler in Contained) {
+                handler.Destroy();
             }
             Contained.Clear();
         }
