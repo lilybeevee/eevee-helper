@@ -31,6 +31,7 @@ namespace Celeste.Mod.EeveeHelper {
 
             Everest.Events.Level.OnLoadBackdrop += this.OnLoadBackdrop;
 
+            EntityHandler.RegisterInherited<Water>((entity, container) => new WaterHandler(entity));
             EntityHandler.RegisterInherited<TrackSpinner>((entity, container) => new TrackSpinnerHandler(entity));
             EntityHandler.RegisterInherited<RotateSpinner>((entity, container) => new RotateSpinnerHandler(entity));
 
