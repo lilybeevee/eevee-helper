@@ -32,38 +32,36 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="AdventureHelper">
-      <HintPath>..\_dependencies\AdventureHelper.dll</HintPath>
-      <Private>False</Private>
+      <HintPath>..\..\..\Steam\SteamApps\common\Celeste\Mods\AdventureHelper\AdventureHelper.dll</HintPath>
     </Reference>
     <Reference Include="Celeste">
-      <HintPath>..\..\..\Celeste.exe</HintPath>
-      <Private>False</Private>
+      <HintPath>..\..\..\Steam\SteamApps\common\Celeste\Celeste.exe</HintPath>
     </Reference>
     <Reference Include="FNA">
-      <HintPath>..\..\..\FNA.dll</HintPath>
+      <HintPath>..\..\..\Steam\SteamApps\common\Celeste\FNA.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="MMHOOK_Celeste">
-      <HintPath>..\..\..\MMHOOK_Celeste.dll</HintPath>
+      <HintPath>..\..\..\Steam\SteamApps\common\Celeste\MMHOOK_Celeste.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="Mono.Cecil">
-      <HintPath>..\..\..\Mono.Cecil.dll</HintPath>
+      <HintPath>..\..\..\Steam\SteamApps\common\Celeste\Mono.Cecil.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="MonoMod.RuntimeDetour">
-      <HintPath>..\..\..\MonoMod.RuntimeDetour.dll</HintPath>
+      <HintPath>..\..\..\Steam\SteamApps\common\Celeste\MonoMod.RuntimeDetour.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="MonoMod.Utils">
-      <HintPath>..\..\..\MonoMod.Utils.dll</HintPath>
+      <HintPath>..\..\..\Steam\SteamApps\common\Celeste\MonoMod.Utils.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="System" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Xml" />
     <Reference Include="YamlDotNet">
-      <HintPath>..\..\..\YamlDotNet.dll</HintPath>
+      <HintPath>..\..\..\Steam\SteamApps\common\Celeste\YamlDotNet.dll</HintPath>
       <Private>False</Private>
     </Reference>
   </ItemGroup>
@@ -95,6 +93,7 @@
     <Compile Include="Handlers\IAnchorProvider.cs" />
     <Compile Include="Handlers\IMoveable.cs" />
     <Compile Include="Handlers\Impl\Compat\MultipleNodeTrackSpinnerHandler.cs" />
+    <Compile Include="Handlers\Impl\WaterHandler.cs" />
     <Compile Include="Handlers\Impl\RotateSpinnerHandler.cs" />
     <Compile Include="Handlers\Impl\TrackSpinnerHandler.cs" />
     <Compile Include="Handlers\IEntityHandler.cs" />
