@@ -31,37 +31,35 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="AdventureHelper">
-      <HintPath>..\..\..\Steam\SteamApps\common\Celeste\Mods\AdventureHelper\AdventureHelper.dll</HintPath>
-    </Reference>
     <Reference Include="Celeste">
-      <HintPath>..\..\..\Steam\SteamApps\common\Celeste\Celeste.exe</HintPath>
+      <HintPath>..\..\..\Celeste.exe</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="FNA">
-      <HintPath>..\..\..\Steam\SteamApps\common\Celeste\FNA.dll</HintPath>
+      <HintPath>..\..\..\FNA.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="MMHOOK_Celeste">
-      <HintPath>..\..\..\Steam\SteamApps\common\Celeste\MMHOOK_Celeste.dll</HintPath>
+      <HintPath>..\..\..\MMHOOK_Celeste.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="Mono.Cecil">
-      <HintPath>..\..\..\Steam\SteamApps\common\Celeste\Mono.Cecil.dll</HintPath>
+      <HintPath>..\..\..\Mono.Cecil.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="MonoMod.RuntimeDetour">
-      <HintPath>..\..\..\Steam\SteamApps\common\Celeste\MonoMod.RuntimeDetour.dll</HintPath>
+      <HintPath>..\..\..\MonoMod.RuntimeDetour.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="MonoMod.Utils">
-      <HintPath>..\..\..\Steam\SteamApps\common\Celeste\MonoMod.Utils.dll</HintPath>
+      <HintPath>..\..\..\MonoMod.Utils.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="System" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Xml" />
     <Reference Include="YamlDotNet">
-      <HintPath>..\..\..\Steam\SteamApps\common\Celeste\YamlDotNet.dll</HintPath>
+      <HintPath>..\..\..\YamlDotNet.dll</HintPath>
       <Private>False</Private>
     </Reference>
   </ItemGroup>
