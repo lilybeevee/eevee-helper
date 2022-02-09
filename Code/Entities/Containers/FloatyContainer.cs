@@ -55,16 +55,16 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             if (disablePush)
                 return;
             foreach (var contained in Container.Contained) {
-                if (contained is Platform platform) {
+                if (contained.Entity is Platform platform) { //BRUH IM SO FUCKING MAD OPJIHNOVDF SIJE BKDFSCVOPJK ENMFDSC
                     var prevCollision = platform.OnDashCollide;
+                    platform.OnDashCollide = null;
                     platform.OnDashCollide = (player, direction) => {
-                        var result = DashCollisionResults.NormalCollision;
-                        if (prevCollision != null)
-                            result = prevCollision(player, direction);
-                        if (dashEase <= 0.2f) {
-                            dashEase = 1f;
-                            dashDirection = direction;
+                        var result = prevCollision?.Invoke(player, direction) ?? DashCollisionResults.NormalCollision;
+                        if (this.dashEase <= 0.2f) {
+                            this.dashEase = 1f;
+                            this.dashDirection = direction;
                         }
+                        Console.WriteLine("Dash registered: " + result.ToString());
                         if (result == DashCollisionResults.NormalCollision)
                             return DashCollisionResults.NormalOverride;
                         else

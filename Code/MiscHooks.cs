@@ -212,6 +212,7 @@ namespace Celeste.Mod.EeveeHelper {
             Logger.Log("EeveeHelper", $"Added IL Hook for Level.orig_LoadLevel ({type} - 3)");
         }
 
+        //Small optimization here where if it isn't an EntityContainingSet or has an EntityContainer it doesn't worry about the messy code. This needs to be improved a ton already but whatever.
         private static bool Collide_Check_Entity_Entity(On.Monocle.Collide.orig_Check_Entity_Entity orig, Entity a, Entity b) {
             if ((a is CollidableModifier.Solidifier aSolid && aSolid.Entity == b) ||
                 (b is CollidableModifier.Solidifier bSolid && bSolid.Entity == a)) {
@@ -220,6 +221,7 @@ namespace Celeste.Mod.EeveeHelper {
             }
             var aContainer = a.Get<EntityContainer>();
             var bContainer = b.Get<EntityContainer>();
+            if (aContainer == null && bContainer == null) { return orig(a, b); }
             if ((aContainer != null && !aContainer.CollideWithContained && aContainer.GetEntities().Contains(b)) ||
                 (bContainer != null && !bContainer.CollideWithContained && bContainer.GetEntities().Contains(a))) {
 
