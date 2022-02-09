@@ -64,7 +64,6 @@ namespace Celeste.Mod.EeveeHelper.Entities {
                             this.dashEase = 1f;
                             this.dashDirection = direction;
                         }
-                        Console.WriteLine("Dash registered: " + result.ToString());
                         if (result == DashCollisionResults.NormalCollision)
                             return DashCollisionResults.NormalOverride;
                         else
