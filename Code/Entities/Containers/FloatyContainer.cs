@@ -100,13 +100,13 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             var sine = (float)Math.Sin(sineWave * floatSpeed) * floatMove;
             var push = Calc.YoYo(Ease.QuadIn(dashEase)) * dashDirection * pushMove;
 
-            var targetY = MathHelper.Lerp(anchorPosition.Y, anchorPosition.Y + sinkMove, Ease.SineInOut(yLerp)) + sine;
+            var targetY = MathHelper.Lerp(anchorPosition.Y, anchorPosition.Y + sinkMove * (HasRider() ? 3 : 1), Ease.SineInOut(yLerp)) + sine;
             Position = new Vector2(anchorPosition.X + push.X, targetY + push.Y);
         }
 
         private bool HasRider() {
             foreach (var contained in Container.Contained)
-                if ((contained is Solid solid && solid.HasPlayerRider()) || (contained is JumpThru jumpThru && jumpThru.HasPlayerRider()))
+                if ((contained.Entity is Solid solid && solid.HasPlayerRider()) || (contained.Entity is JumpThru jumpThru && jumpThru.HasPlayerRider()))
                     return true;
             return false;
         }
