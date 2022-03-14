@@ -116,7 +116,7 @@ namespace Celeste.Mod.EeveeHelper.Components {
             Padding = new Vector4(Entity.Width / 2f, Entity.Height / 2f, Entity.Width / 2f, Entity.Height / 2f);
         }
 
-        public void DoMoveAction(Action moveAction, Func<Entity, Vector2, Vector2?> liftSpeedGetter = null) {
+        public void DoMoveAction(Action moveAction, Func<Entity, Vector2, Vector2?> liftSpeedGetter = null, bool appendToPrevLiftSpeed = false) {
             Cleanup();
             var anchorOffsets = new Dictionary<Entity, Dictionary<string, Vector2>>();
             var collidable = new Dictionary<Entity, bool>();
@@ -163,8 +163,11 @@ namespace Celeste.Mod.EeveeHelper.Components {
                         platform.MoveH(moveOffset.X, liftSpeed.Value.X);
                         platform.MoveV(moveOffset.Y, liftSpeed.Value.Y);
                     } else {
+                        Vector2 LiftSpeed = Vector2.Zero;
+                        if (appendToPrevLiftSpeed) LiftSpeed = platform.LiftSpeed;
                         platform.MoveH(moveOffset.X);
                         platform.MoveV(moveOffset.Y);
+                        if (appendToPrevLiftSpeed) platform.LiftSpeed += LiftSpeed;
                     }
                 } else {
                     entity.Position += moveOffset;

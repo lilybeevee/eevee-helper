@@ -26,10 +26,11 @@ namespace Celeste.Mod.EeveeHelper.Entities {
         private float sineWave;
         private float dashEase;
         private Vector2 dashDirection;
+        private bool appendToLiftSpeed;
 
         public FloatyContainer(EntityData data, Vector2 offset) : base(data.Position + offset) {
             Collider = new Hitbox(data.Width, data.Height);
-            Depth = Depths.Top - 10;
+            Depth = data.Int("customDepth", Depths.Top - 10);
 
             disablePush = data.Bool("disablePush");
 
@@ -46,6 +47,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             Add(Container = new EntityContainerMover(data, fitContained: false) {
                 DefaultIgnored = e => e is FloatyContainer
             });
+            appendToLiftSpeed = data.Bool("appendToLiftSpeed", false);
 
             anchorPosition = Position;
         }
@@ -55,7 +57,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             if (disablePush)
                 return;
             foreach (var contained in Container.Contained) {
-                if (contained.Entity is Platform platform) { //BRUH IM SO FUCKING MAD OPJIHNOVDF SIJE BKDFSCVOPJK ENMFDSC
+                if (contained.Entity is Platform platform) {
                     var prevCollision = platform.OnDashCollide;
                     platform.OnDashCollide = null;
                     platform.OnDashCollide = (player, direction) => {
@@ -93,7 +95,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             dashEase = Calc.Approach(dashEase, 0f, Engine.DeltaTime * 1.5f * pushSpeed);
 
             var lastPos = Position;
-            Container.DoMoveAction(MoveToTarget);
+            Container.DoMoveAction(MoveToTarget, null, appendToLiftSpeed);
         }
 
         private void MoveToTarget() {
