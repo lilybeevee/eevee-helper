@@ -10,8 +10,10 @@ using System.Threading.Tasks;
 
 namespace Celeste.Mod.EeveeHelper.Entities {
     [CustomEntity("EeveeHelper/FloatyContainer")]
-    public class FloatyContainer : Entity {
-        public EntityContainerMover Container;
+    public class FloatyContainer : Entity, IContainer {
+        public EntityContainer Container => _Container;
+
+        public EntityContainerMover _Container { get; set; }
         private bool disablePush;
         private float floatSpeed;
         private float floatMove;
@@ -26,11 +28,11 @@ namespace Celeste.Mod.EeveeHelper.Entities {
         private float sineWave;
         private float dashEase;
         private Vector2 dashDirection;
-        private bool appendToLiftSpeed;
+        private bool liftSpeedFix;
 
         public FloatyContainer(EntityData data, Vector2 offset) : base(data.Position + offset) {
             Collider = new Hitbox(data.Width, data.Height);
-            Depth = data.Int("customDepth", Depths.Top - 10);
+            Depth = Depths.Top - 10;
 
             disablePush = data.Bool("disablePush");
 
@@ -44,10 +46,10 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             if (!data.Bool("disableSpawnOffset"))
                 sineWave = Calc.Random.NextFloat((float)Math.PI * 2f);
 
-            Add(Container = new EntityContainerMover(data, fitContained: false) {
+            Add(_Container = new EntityContainerMover(data, fitContained: false) {
                 DefaultIgnored = e => e is FloatyContainer
             });
-            appendToLiftSpeed = data.Bool("appendToLiftSpeed", false);
+            liftSpeedFix = data.Bool("liftSpeedFix", false);
 
             anchorPosition = Position;
         }
@@ -56,7 +58,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             base.Awake(scene);
             if (disablePush)
                 return;
-            foreach (var contained in Container.Contained) {
+            foreach (var contained in _Container.Contained) {
                 if (contained.Entity is Platform platform) {
                     var prevCollision = platform.OnDashCollide;
                     platform.OnDashCollide = null;
@@ -78,7 +80,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
         public override void Update() {
             base.Update();
 
-            if (!Container.Attached)
+            if (!_Container.Attached)
                 return;
 
             if (HasRider())
@@ -95,7 +97,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             dashEase = Calc.Approach(dashEase, 0f, Engine.DeltaTime * 1.5f * pushSpeed);
 
             var lastPos = Position;
-            Container.DoMoveAction(MoveToTarget, null, appendToLiftSpeed);
+            _Container.DoMoveAction(MoveToTarget, null, liftSpeedFix);
         }
 
         private void MoveToTarget() {
@@ -107,7 +109,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
         }
 
         private bool HasRider() {
-            foreach (var contained in Container.Contained)
+            foreach (var contained in _Container.Contained)
                 if ((contained.Entity is Solid solid && solid.HasPlayerRider()) || (contained.Entity is JumpThru jumpThru && jumpThru.HasPlayerRider()))
                     return true;
             return false;

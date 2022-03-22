@@ -11,6 +11,9 @@ using System.Threading.Tasks;
 
 namespace Celeste.Mod.EeveeHelper.Components {
     public class EntityContainerMover : EntityContainer {
+
+        public static bool LiftSpeedFix;
+
         private static Dictionary<Type, List<Type>> EntityHandlers = new Dictionary<Type, List<Type>>();
 
         private static HashSet<string> IgnoredAnchors = new HashSet<string>() {
@@ -27,6 +30,7 @@ namespace Celeste.Mod.EeveeHelper.Components {
         public Action<Vector2, float, float> OnFit;
         public Action OnPreMove;
         public Action OnPostMove;
+
 
         public EntityContainerMover() : base() { }
 
@@ -116,7 +120,7 @@ namespace Celeste.Mod.EeveeHelper.Components {
             Padding = new Vector4(Entity.Width / 2f, Entity.Height / 2f, Entity.Width / 2f, Entity.Height / 2f);
         }
 
-        public void DoMoveAction(Action moveAction, Func<Entity, Vector2, Vector2?> liftSpeedGetter = null, bool appendToPrevLiftSpeed = false) {
+        public void DoMoveAction(Action moveAction, Func<Entity, Vector2, Vector2?> liftSpeedGetter = null, bool liftSpeedFix = false) {
             Cleanup();
             var anchorOffsets = new Dictionary<Entity, Dictionary<string, Vector2>>();
             var collidable = new Dictionary<Entity, bool>();
@@ -156,6 +160,8 @@ namespace Celeste.Mod.EeveeHelper.Components {
                     }
                 }
             }
+
+            if (liftSpeedFix) LiftSpeedFix = true;
             foreach (var entity in toMove) {
                 if (entity is Platform platform) {
                     var liftSpeed = liftSpeedGetter?.Invoke(entity, moveOffset);
@@ -163,16 +169,14 @@ namespace Celeste.Mod.EeveeHelper.Components {
                         platform.MoveH(moveOffset.X, liftSpeed.Value.X);
                         platform.MoveV(moveOffset.Y, liftSpeed.Value.Y);
                     } else {
-                        Vector2 LiftSpeed = Vector2.Zero;
-                        if (appendToPrevLiftSpeed) LiftSpeed = platform.LiftSpeed;
                         platform.MoveH(moveOffset.X);
                         platform.MoveV(moveOffset.Y);
-                        if (appendToPrevLiftSpeed) platform.LiftSpeed += LiftSpeed;
                     }
                 } else {
                     entity.Position += moveOffset;
                 }
             }
+            if (liftSpeedFix) LiftSpeedFix = false;
             Entity.Collidable = selfCollidable;
             OnPostMove?.Invoke();
         }

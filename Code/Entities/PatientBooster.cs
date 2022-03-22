@@ -15,7 +15,7 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.EeveeHelper.Entities {
     [CustomEntity("EeveeHelper/PatientBooster")]
     public class PatientBooster : Booster {
-        private DynData<Booster> baseData;
+        private DynamicData baseData;
         private Vector2? lastSpritePos;
 
         public Sprite Sprite => baseData.Get<Sprite>("sprite");
@@ -25,7 +25,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
 
             var red = data.Bool("red");
 
-            baseData = new DynData<Booster>(this);
+            baseData = DynamicData.For(this);
             Remove(Sprite);
             var sprite = GFX.SpriteBank.Create($"EeveeHelper_patientBooster{(red ? "Red" : "")}");
             baseData.Set("sprite", sprite);

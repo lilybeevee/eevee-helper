@@ -9,7 +9,10 @@ using System.Linq;
 
 namespace Celeste.Mod.EeveeHelper.Entities {
     [CustomEntity("EeveeHelper/AttachedContainer")]
-    public class AttachedContainer : Entity {
+    public class AttachedContainer : Entity, IContainer {
+        public EntityContainer Container => _Container;
+
+
         private EntityContainer.ContainMode attachMode;
         private string attachFlag;
         private bool notAttachFlag;
@@ -22,7 +25,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
         private bool destroyable;
         private Vector2? node;
 
-        private EntityContainerMover container;
+        public EntityContainerMover _Container;
         private StaticMover mover;
         private bool attached;
         private Entity customAttached;
@@ -55,7 +58,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             if (nodes.Length > 0)
                 node = nodes[0] - Center;
 
-            Add(container = new EntityContainerMover(data) {
+            Add(_Container = new EntityContainerMover(data) {
                 OnFit = OnFit,
                 IsValid = e => !IsValid(e),
                 DefaultIgnored = e => e is AttachedContainer
@@ -66,7 +69,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
                     JumpThruChecker = (entity) => IsRiding(entity, true),
                     SolidChecker = (entity) => IsRiding(entity, true),
                     OnMove = (amount) => { if (attached) OnMove(amount); },
-                    OnShake = (amount) => { if (attached) OnMove(amount); },
+                    OnShake = (amount) => { if (attached) OnMoveSprites(amount); },
                     OnEnable = () => { if (attached) OnEnable(); },
                     OnDisable = () => { if (attached) OnDisable(); },
                     OnDestroy = () => { if (attached && (destroyable || legacyDestroySometimesAnyway)) RemoveSelf(); }
@@ -79,7 +82,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             Position = pos;
             Collider.Width = width;
             Collider.Height = height;
-            container.DoMoveAction(() => Center = lastCenter);
+            _Container.DoMoveAction(() => Center = lastCenter);
         }
 
         public override void Awake(Scene scene) {
@@ -128,7 +131,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
                     var delta = newPos - lastAttachedPos;
                     if (onlyX) delta.Y = 0f;
                     if (onlyY) delta.X = 0f;
-                    container.DoMoveAction(() => Position += delta);
+                    _Container.DoMoveAction(() => Position += delta);
                     lastAttachedPos = newPos;
                 }
                 // legacy check
@@ -150,7 +153,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
 
             var currentState = attachedTo != null ? Tuple.Create(attachedTo.Collidable, attachedTo.Visible) : Tuple.Create(true, true);
             if (attachedTo != null) {
-                foreach (var entity in container.GetEntities()) {
+                foreach (var entity in _Container.GetEntities()) {
                     if (matchCollidable && currentState.Item1 != lastAttachedState.Item1) {
                         if (!currentState.Item1) {
                             lastMatchCollidable[entity] = entity.Collidable;
@@ -235,12 +238,24 @@ namespace Celeste.Mod.EeveeHelper.Entities {
         private void OnMove(Vector2 amount) {
             if (onlyX) amount.Y = 0f;
             if (onlyY) amount.X = 0f;
-            container.DoMoveAction(() => Position += amount, (h, move) => mover.Platform.LiftSpeed);
+            _Container.DoMoveAction(() => Position += amount, (h, move) => mover.Platform.LiftSpeed);
+        }
+
+        private void OnMoveSprites(Vector2 amount) {
+            if (onlyX) amount.Y = 0f;
+            if (onlyY) amount.X = 0f;
+            foreach(IEntityHandler ieH in _Container.Contained) {
+                foreach(GraphicsComponent gc in ieH.Entity.Components.GetAll<GraphicsComponent>()) {
+                    if(gc != null) {
+                        gc.RenderPosition += amount;
+                    }
+                }
+            }
         }
 
         private void OnEnable() {
             Active = Visible = Collidable = true;
-            foreach (var entity in container.GetEntities()) {
+            foreach (var entity in _Container.GetEntities()) {
                 var state = lastStates[entity];
                 entity.Active = state.Item1;
                 entity.Visible = state.Item2;
@@ -251,7 +266,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
 
         private void OnDisable() {
             Active = Visible = Collidable = false;
-            foreach (var entity in container.GetEntities()) {
+            foreach (var entity in _Container.GetEntities()) {
                 lastStates.Add(entity, Tuple.Create(entity.Active, entity.Visible, entity.Collidable));
                 entity.Active = entity.Visible = entity.Collidable = false;
             }

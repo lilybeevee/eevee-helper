@@ -13,13 +13,13 @@ using System.Threading.Tasks;
 
 namespace Celeste.Mod.EeveeHelper.Entities.Modifiers {
     [CustomEntity("EeveeHelper/FlagToggleModifier")]
-    public class FlagToggleModifier : Entity {
+    public class FlagToggleModifier : Entity, IContainer {
         public bool Toggled => string.IsNullOrEmpty(flag) || SceneAs<Level>().Session.GetFlag(flag) != notFlag;
 
         private string flag;
         private bool notFlag;
 
-        private EntityContainer container;
+        public EntityContainer Container { get; set; }
         private Dictionary<IEntityHandler, object> entityStates = new Dictionary<IEntityHandler, object>();
 
         public FlagToggleModifier(EntityData data, Vector2 offset) : base(data.Position + offset) {
@@ -30,7 +30,7 @@ namespace Celeste.Mod.EeveeHelper.Entities.Modifiers {
             flag = parsedFlag.Item1;
             notFlag = parsedFlag.Item2;
 
-            Add(container = new EntityContainer(data) {
+            Add(Container = new EntityContainer(data) {
                 DefaultIgnored = e => e.Get<EntityContainer>() != null,
                 OnDetach = EnableEntity
             });
@@ -53,7 +53,7 @@ namespace Celeste.Mod.EeveeHelper.Entities.Modifiers {
         }
 
         private void DisableEntities() {
-            foreach (var handler in container.Contained) {
+            foreach (var handler in Container.Contained) {
                 if (!entityStates.ContainsKey(handler)) {
                     var state = HandlerUtils.GetAs<IToggleable, object>(handler, t => t.SaveState(), e => new EntityState(e));
                     if (state != null) {
@@ -65,7 +65,7 @@ namespace Celeste.Mod.EeveeHelper.Entities.Modifiers {
         }
 
         private void EnableEntities() {
-            foreach (var handler in container.Contained)
+            foreach (var handler in Container.Contained)
                 EnableEntity(handler);
 
             entityStates.Clear();

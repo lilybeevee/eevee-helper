@@ -11,11 +11,11 @@ using System.Threading.Tasks;
 
 namespace Celeste.Mod.EeveeHelper.Entities.Modifiers {
     [CustomEntity("EeveeHelper/CollidableModifier")]
-    public class CollidableModifier : Entity {
+    public class CollidableModifier : Entity, IContainer {
         private bool noCollide;
         private bool solidify;
 
-        private EntityContainer container;
+        public EntityContainer Container { get; set; }
         private Dictionary<Entity, Solid> solids = new Dictionary<Entity, Solid>();
         private Dictionary<Entity, bool> wasCollidable = new Dictionary<Entity, bool>();
 
@@ -25,8 +25,8 @@ namespace Celeste.Mod.EeveeHelper.Entities.Modifiers {
             noCollide = data.Bool("noCollide");
             solidify = data.Bool("solidify");
 
-            Add(container = new EntityContainer(data) {
-                IsValid = e => !(e is Solidifier solidifier && container.GetEntities().Contains(solidifier.Entity)),
+            Add(Container = new EntityContainer(data) {
+                IsValid = e => !(e is Solidifier solidifier && Container.GetEntities().Contains(solidifier.Entity)),
                 DefaultIgnored = e => e.Get<EntityContainer>() != null,
                 OnAttach = h => OnAttach(h.Entity),
                 OnDetach = h => OnDetach(h.Entity)
@@ -36,7 +36,7 @@ namespace Celeste.Mod.EeveeHelper.Entities.Modifiers {
         private void OnAttach(Entity entity) {
             if (solidify && !solids.ContainsKey(entity) && entity.Collider != null && !(entity is Solid)) {
                 var solid = new Solidifier(entity);
-                new DynData<Entity>(entity).Set("solidModifierSolidifier", solid);
+                DynamicData.For(entity).Set("solidModifierSolidifier", solid);
                 solids.Add(entity, solid);
                 Scene.Add(solid);
             }
@@ -48,7 +48,7 @@ namespace Celeste.Mod.EeveeHelper.Entities.Modifiers {
         private void OnDetach(Entity entity) {
             if (solidify && solids.ContainsKey(entity)) {
                 var solid = solids[entity];
-                new DynData<Entity>(entity).Set<Solidifier>("solidModifierSolidifier", null);
+                DynamicData.For(entity).Set("solidModifierSolidifier", null);
                 if (solid.Scene != null)
                     solid.RemoveSelf();
             }
@@ -64,7 +64,7 @@ namespace Celeste.Mod.EeveeHelper.Entities.Modifiers {
             base.Update();
 
             if (noCollide) {
-                foreach (var entity in container.GetEntities())
+                foreach (var entity in Container.GetEntities())
                     entity.Collidable = false;
             }
         }

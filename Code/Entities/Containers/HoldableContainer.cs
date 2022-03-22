@@ -13,9 +13,12 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.EeveeHelper.Entities {
     [Tracked]
     [CustomEntity("EeveeHelper/HoldableContainer")]
-    public class HoldableContainer : Actor {
+    public class HoldableContainer : Actor, IContainer {
+        public EntityContainer Container => _Container;
+        public EntityContainerMover _Container;
+
         public bool HasGravity {
-            get => hasGravity && Container?.Contained.Count > 0 && ((!waitForGrab) || grabbedOnce);
+            get => hasGravity && _Container?.Contained.Count > 0 && ((!waitForGrab) || grabbedOnce);
             set => hasGravity = value;
         }
 
@@ -28,7 +31,6 @@ namespace Celeste.Mod.EeveeHelper.Entities {
         private bool waitForGrab;
 
         public EntityID ID;
-        public EntityContainerMover Container;
         public Vector2 Speed;
         public Holdable Hold;
         private Dictionary<Entity, bool> wasCollidable = new Dictionary<Entity, bool>();
@@ -62,7 +64,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             Depth = Depths.Top - 10;
             respawnPosition = Position;
 
-            Add(Container = new EntityContainerMover(data) {
+            Add(_Container = new EntityContainerMover(data) {
                 DefaultIgnored = e => e is HoldableContainer,
                 OnFit = OnFit,
                 OnPreMove = () => AllowPushing = false,
@@ -84,7 +86,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
                 Add(new DepthPartner(Depths.Player + 1) {
                     OnUpdate = () => {
                         if (Hold.IsHeld || destroyed) {
-                            foreach (var handler in Container.Contained)
+                            foreach (var handler in _Container.Contained)
                                 handler.Entity.Collidable = false;
                         }
                     }
@@ -93,7 +95,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
                 Add(new TransitionListener {
                     OnOutBegin = () => {
                         if (Hold.IsHeld) {
-                            foreach (var handler in Container.Contained)
+                            foreach (var handler in _Container.Contained)
                                 handler.Entity?.AddTag(Tags.Persistent);
                         }
                     }
@@ -127,7 +129,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             AddTag(Tags.Persistent);
             wasCollidable.Clear();
             wasPersistent.Clear();
-            foreach (var entity in Container.GetEntities()) {
+            foreach (var entity in _Container.GetEntities()) {
                 wasCollidable.Add(entity, entity.Collidable);
                 var persistent = entity.TagCheck(Tags.Persistent);
                 wasPersistent.Add(entity, persistent);
@@ -145,7 +147,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             }
             RemoveTag(Tags.Persistent);
             if (!destroyed) {
-                foreach (var entity in Container.GetEntities()) {
+                foreach (var entity in _Container.GetEntities()) {
                     if (!(wasPersistent.ContainsKey(entity) && wasPersistent[entity]))
                         entity.RemoveTag(Tags.Persistent);
                     entity.Collidable = wasCollidable.ContainsKey(entity) ? wasCollidable[entity] : true;
@@ -162,12 +164,12 @@ namespace Celeste.Mod.EeveeHelper.Entities {
 
         private void OnCarry(Vector2 target) {
             holdTarget = target;
-            Container.DoMoveAction(() => Position = target);
+            _Container.DoMoveAction(() => Position = target);
         }
 
         protected override void OnSquish(CollisionData data) {
             bool wiggled = false;
-            Container.DoMoveAction(() => wiggled = TryBigSquishWiggle(data));
+            _Container.DoMoveAction(() => wiggled = TryBigSquishWiggle(data));
             return;
         }
 
@@ -194,7 +196,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
         }
 
         private void ReleasedSquishWiggle() {
-            Container.DoMoveAction(() => {
+            _Container.DoMoveAction(() => {
                 for (int i = 0; i <= Math.Max(3, (int)Width); i++) {
                     for (int j = 0; j <= Math.Max(3, (int)Height); j++) {
                         if (i != 0 || j != 0) {
@@ -224,7 +226,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
                 Hold.PickupCollider.Height = Collider.Height + 8f;
 
                 if (Hold.IsHeld)
-                    Container.DoMoveAction(() => Position = holdTarget);
+                    _Container.DoMoveAction(() => Position = holdTarget);
             }
         }
 
@@ -232,7 +234,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             base.Update();
 
             AllowPushing = HasGravity;
-            Collidable = !destroyed && Container.Contained.Count > 0;
+            Collidable = !destroyed && _Container.Contained.Count > 0;
 
             if (!Collidable && holdable && Hold.IsHeld) {
                 var speed = Hold.Holder.Speed;
@@ -242,17 +244,17 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             }
 
             if (!destroyed) {
-                if (Container.Contained.Count == 0) return;
+                if (_Container.Contained.Count == 0) return;
 
                 if (wasDestroyed) {
-                    foreach (var entity in Container.GetEntities()) {
+                    foreach (var entity in _Container.GetEntities()) {
                         if (wasCollidable.ContainsKey(entity) && wasCollidable[entity])
                             entity.Collidable = true;
                     }
                 } else if (destroyable) {
                     foreach (SeekerBarrier barrier in Scene.Tracker.GetEntities<SeekerBarrier>()) {
                         barrier.Collidable = true;
-                        var collided = CollideCheck(barrier) && !Container.GetEntities().Contains(barrier);
+                        var collided = CollideCheck(barrier) && !_Container.GetEntities().Contains(barrier);
                         barrier.Collidable = false;
 
                         if (collided) {
@@ -274,7 +276,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
                 wasDestroyed = false;
             } else if (!wasDestroyed) {
                 wasCollidable.Clear();
-                foreach (var entity in Container.GetEntities()) {
+                foreach (var entity in _Container.GetEntities()) {
                     wasCollidable[entity] = entity.Collidable;
                     entity.Collidable = false;
                 }
@@ -283,7 +285,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
 
             if (holdable && Hold.IsHeld) {
                 prevLiftSpeed = Vector2.Zero;
-                foreach (var entity in Container.GetEntities()) {
+                foreach (var entity in _Container.GetEntities()) {
                     entity.Collidable = false;
                 }
             } else {
@@ -364,10 +366,10 @@ namespace Celeste.Mod.EeveeHelper.Entities {
                 MoveH(Speed.X * Engine.DeltaTime, OnCollideH, null);
                 MoveV(Speed.Y * Engine.DeltaTime, OnCollideV, null);
                 if (Left < level.Bounds.Left) {
-                    Container.DoMoveAction(() => Left = level.Bounds.Left);
+                    _Container.DoMoveAction(() => Left = level.Bounds.Left);
                     Speed.X = Speed.X * -0.4f;
                 } else if (Top < (level.Bounds.Top - 4)) {
-                    Container.DoMoveAction(() => Top = level.Bounds.Top + 4);
+                    _Container.DoMoveAction(() => Top = level.Bounds.Top + 4);
                     Speed.Y = 0f;
                 } else if (Top > level.Bounds.Bottom) {
                     if (!respawn)
@@ -386,11 +388,11 @@ namespace Celeste.Mod.EeveeHelper.Entities {
         }
 
         public override bool IsRiding(Solid solid) {
-            return HasGravity && !Container.GetEntities().Contains(solid) && base.IsRiding(solid);
+            return HasGravity && !_Container.GetEntities().Contains(solid) && base.IsRiding(solid);
         }
 
         public override bool IsRiding(JumpThru jumpThru) {
-            return HasGravity && !Container.GetEntities().Contains(jumpThru) && base.IsRiding(jumpThru);
+            return HasGravity && !_Container.GetEntities().Contains(jumpThru) && base.IsRiding(jumpThru);
         }
 
         private IEnumerator DestroyRoutine() {
@@ -404,12 +406,12 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             Add(tween);
             yield return 0.2f;
             if (!respawn) {
-                Container.FitContained = false;
-                Container.DestroyContained();
+                _Container.FitContained = false;
+                _Container.DestroyContained();
             } else {
                 grabbedOnce = false;
                 Speed = Vector2.Zero;
-                Container.DoMoveAction(() => Position = respawnPosition);
+                _Container.DoMoveAction(() => Position = respawnPosition);
             }
             var tween2 = Tween.Create(Tween.TweenMode.Oneshot, null, 0.1f, true);
             tween2.OnUpdate = (t) => whiteAlpha = (1f - t.Eased);

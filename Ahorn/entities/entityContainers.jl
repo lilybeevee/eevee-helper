@@ -73,7 +73,10 @@ const placements = Ahorn.PlacementDict(
     ),
     "Entity Container (Floaty)\n(Eevee Helper)" => Ahorn.EntityPlacement(
         FloatyContainer,
-        "rectangle"
+        "rectangle",
+        Dict{String, Any}(
+            "liftSpeedFix" => true
+        )
     ),
     "Entity Container (SMW Track)\n(Eevee Helper)" => Ahorn.EntityPlacement(
         SMWTrackContainer,

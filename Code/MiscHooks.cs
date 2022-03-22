@@ -30,6 +30,12 @@ namespace Celeste.Mod.EeveeHelper {
             IL.Celeste.MapData.ParseBackdrop += MapData_ParseBackdrop;
             IL.Monocle.EntityList.UpdateLists += EntityList_UpdateLists;
 
+            IL.Celeste.Solid.MoveHExact += Solid_MoveHExact;
+            IL.Celeste.Solid.MoveVExact += Solid_MoveVExact;
+
+            IL.Celeste.SwapBlock.Update += SwapBlock_Update;
+
+
             levelLoadHook = new ILHook(typeof(Level).GetMethod("orig_LoadLevel", BindingFlags.Public | BindingFlags.Instance), Level_orig_LoadLevel);
             zipMoverSequenceHook = new ILHook(typeof(ZipMover).GetMethod("Sequence", BindingFlags.Instance | BindingFlags.NonPublic).GetStateMachineTarget(), ZipMover_Sequence);
         }
@@ -42,6 +48,11 @@ namespace Celeste.Mod.EeveeHelper {
             IL.Celeste.Holdable.Release -= Holdable_Release;
             IL.Celeste.MapData.ParseBackdrop -= MapData_ParseBackdrop;
             IL.Monocle.EntityList.UpdateLists -= EntityList_UpdateLists;
+
+            IL.Celeste.Solid.MoveHExact -= Solid_MoveHExact;
+            IL.Celeste.Solid.MoveVExact -= Solid_MoveVExact;
+
+            IL.Celeste.SwapBlock.Update -= SwapBlock_Update;
 
             levelLoadHook?.Dispose();
             zipMoverSequenceHook?.Dispose();
@@ -106,7 +117,7 @@ namespace Celeste.Mod.EeveeHelper {
                     }
                 });
 
-                cursor.Index += 4;
+                cursor.Index += 4; //yuck
 
                 cursor.Emit(OpCodes.Ldarg_0);
                 cursor.EmitDelegate<Action<EntityList>>(entityList => {
@@ -219,8 +230,10 @@ namespace Celeste.Mod.EeveeHelper {
 
                 return false;
             }
-            var aContainer = a.Get<EntityContainer>();
-            var bContainer = b.Get<EntityContainer>();
+            EntityContainer aContainer = null;
+            EntityContainer bContainer = null;
+            if (a is IContainer iA) { aContainer = iA.Container; }
+            if (b is IContainer iB) { bContainer = iB.Container; }
             if (aContainer == null && bContainer == null) { return orig(a, b); }
             if ((aContainer != null && !aContainer.CollideWithContained && aContainer.GetEntities().Contains(b)) ||
                 (bContainer != null && !bContainer.CollideWithContained && bContainer.GetEntities().Contains(a))) {
@@ -231,7 +244,7 @@ namespace Celeste.Mod.EeveeHelper {
         }
 
         private static bool Actor_MoveHExact(On.Celeste.Actor.orig_MoveHExact orig, Actor self, int moveH, Collision onCollide, Solid pusher) {
-            var selfData = new DynData<Entity>(self);
+            var selfData = DynamicData.For(self);
             var result = true;
 
             var solidified = selfData.Get<CollidableModifier.Solidifier>("solidModifierSolidifier");
@@ -241,7 +254,7 @@ namespace Celeste.Mod.EeveeHelper {
 
             if (self is HoldableContainer container) {
                 var collidable = self.Collidable;
-                container.Container.DoMoveAction(() => {
+                container._Container.DoMoveAction(() => {
                     result = orig(self, moveH, onCollide, pusher);
                 }, (entity, move) => (entity is Platform platform) ? new Vector2(platform.LiftSpeed.X + container.Speed.X, platform.LiftSpeed.Y) : move);
             } else {
@@ -257,7 +270,7 @@ namespace Celeste.Mod.EeveeHelper {
         }
 
         private static bool Actor_MoveVExact(On.Celeste.Actor.orig_MoveVExact orig, Actor self, int moveV, Collision onCollide, Solid pusher) {
-            var selfData = new DynData<Entity>(self);
+            var selfData = DynamicData.For(self);
             var result = true;
 
             var solidified = selfData.Get<CollidableModifier.Solidifier>("solidModifierSolidifier");
@@ -267,7 +280,7 @@ namespace Celeste.Mod.EeveeHelper {
 
             if (self is HoldableContainer container) {
                 var collidable = self.Collidable;
-                container.Container.DoMoveAction(() => {
+                container._Container.DoMoveAction(() => {
                     result = orig(self, moveV, onCollide, pusher);
                 }, (entity, move) => (entity is Platform platform) ? new Vector2(platform.LiftSpeed.X, platform.LiftSpeed.Y + container.Speed.Y) : move);
             } else {
@@ -289,7 +302,7 @@ namespace Celeste.Mod.EeveeHelper {
         }
 
         private static bool Actor_OnGround_int(On.Celeste.Actor.orig_OnGround_int orig, Actor self, int downCheck) {
-            var selfData = new DynData<Actor>(self);
+            var selfData = DynamicData.For(self);
             bool result = true;
 
             var solidified = selfData.Get<CollidableModifier.Solidifier>("solidModifierSolidifier");
@@ -298,7 +311,7 @@ namespace Celeste.Mod.EeveeHelper {
                 solidified.Collidable = false;
 
             if (self is HoldableContainer container) {
-                container.Container.DoIgnoreCollision(() => {
+                container._Container.DoIgnoreCollision(() => {
                     result = orig(self, downCheck);
                 });
             } else {
@@ -391,13 +404,57 @@ namespace Celeste.Mod.EeveeHelper {
 
                 cursor.Emit(OpCodes.Ldloc, thisLoc);
                 cursor.EmitDelegate<Func<Vector2, ZipMover, Vector2>>((start, entity) => {
-                    var data = new DynData<ZipMover>(entity);
+                    var data = DynamicData.For(entity);
                     if (data.Get<bool?>("zipMoverNodeHandled") == true) {
                         return data.Get<Vector2>("start");
                     }
                     return start;
                 });
             }
+        }
+
+        private static void Solid_MoveHExact(ILContext il) {
+            ILCursor cursor = new ILCursor(il);
+            int entityIndex = il.Body.Variables.FirstOrDefault(v => v.VariableType.FullName == "Celeste.Actor").Index;
+            int i = 4; //We *expect* the value to be 4, so we set it there just in case.
+            while (cursor.TryGotoNext(MoveType.After, instr => instr.MatchLdloc(entityIndex), i2 => i2.MatchLdarg(0), i3 => i3.MatchLdfld<Platform>("LiftSpeed"))) {
+                cursor.Emit(OpCodes.Ldloc, entityIndex);
+                cursor.EmitDelegate<Func<Vector2, Actor, Vector2>>((v, A) => EntityContainerMover.LiftSpeedFix ? A.LiftSpeed : v);
+            }
+        }
+        private static void Solid_MoveVExact(ILContext il) {
+            ILCursor cursor = new ILCursor(il);
+            int entityIndex = il.Body.Variables.FirstOrDefault(v => v.VariableType.FullName == "Celeste.Actor").Index;
+            while (cursor.TryGotoNext(MoveType.After, instr => instr.MatchLdloc(entityIndex), i2 => i2.MatchLdarg(0), i3 => i3.MatchLdfld<Platform>("LiftSpeed"))) {
+                cursor.Emit(OpCodes.Ldloc, entityIndex);
+                cursor.EmitDelegate<Func<Vector2, Actor, Vector2>>((v, A) => EntityContainerMover.LiftSpeedFix ? A.LiftSpeed : v);
+            }
+        }
+
+        private static void SwapBlock_Update(ILContext il) {
+            ILCursor cursor = new ILCursor(il);
+            if (cursor.TryGotoNext(MoveType.After, i => i.MatchLdarg(0), i2 => i2.MatchLdfld<Entity>("Position"), i3 => i3.MatchCall<Vector2>("op_Inequality"))) {
+                cursor.Emit(OpCodes.Ldarg_0);
+                cursor.Emit(OpCodes.Call, typeof(MiscHooks).GetMethod("ModifiedSwapBlockCheckHandler", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic));
+            }
+        }
+
+        private static bool ModifiedSwapBlockCheckHandler(bool @in, SwapBlock swap) {
+            DynamicData dyn = DynamicData.For(swap);
+            if (!dyn.Data.ContainsKey(Handlers.Impl.SwapBlockHandler.HandledString)) return @in;
+            var lerp = dyn.Get<float>("lerp");
+            var target = dyn.Get<int>("target");
+            Audio.Position(dyn.Get<FMOD.Studio.EventInstance>("moveSfx"), swap.Center);
+            Audio.Position(dyn.Get<FMOD.Studio.EventInstance>("returnSfx"), swap.Center);
+            if (lerp == target) {
+                if (target == 0) {
+                    Audio.SetParameter(dyn.Get<FMOD.Studio.EventInstance>("returnSfx"), "end", 1f);
+                    Audio.Play("event:/game/05_mirror_temple/swapblock_return_end", swap.Center);
+                } else {
+                    Audio.Play("event:/game/05_mirror_temple/swapblock_move_end", swap.Center);
+                }
+            }
+            return false;
         }
     }
 }

@@ -116,6 +116,7 @@ namespace Celeste.Mod.EeveeHelper.Components {
 
         protected virtual void AddContained(IEntityHandler handler) {
             handler.OnAttach(this);
+            handler.Entity.AddOrAppendContainer(this.Entity as IContainer);
             Contained.Add(handler);
 
             List<IEntityHandler> handlers;
