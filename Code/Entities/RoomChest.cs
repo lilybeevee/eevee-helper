@@ -368,7 +368,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
                 cursor.EmitDelegate<Func<bool>>(() => NoEntityCallbacks);
                 cursor.Emit(OpCodes.Brfalse, thisLabel);
                 cursor.EmitDelegate<Action<Entity, Scene>>((entity, scene) => {
-                    new DynData<Entity>(entity).Set("Scene", scene);
+                    DynamicData.For(entity).Set("Scene", scene);
                     foreach (var component in entity.Components)
                         m_Tracker_ComponentAdded.Invoke(scene.Tracker, new object[] { component });
                     m_Scene_SetActualDepth.Invoke(scene, new object[] { entity });
@@ -389,7 +389,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
                 cursor.EmitDelegate<Func<bool>>(() => NoEntityCallbacks);
                 cursor.Emit(OpCodes.Brfalse, thisLabel);
                 cursor.EmitDelegate<Action<Entity, Scene>>((entity, scene) => {
-                    new DynData<Entity>(entity).Set<Scene>("Scene", null);
+                    DynamicData.For(entity).Set("Scene", null);
                     foreach (var component in entity.Components)
                         m_Tracker_ComponentRemoved.Invoke(scene.Tracker, new object[] { component });
                 });

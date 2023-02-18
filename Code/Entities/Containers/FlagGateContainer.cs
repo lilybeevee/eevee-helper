@@ -11,8 +11,18 @@ using System.Threading.Tasks;
 
 namespace Celeste.Mod.EeveeHelper.Entities.Containers {
     [CustomEntity("EeveeHelper/FlagGateContainer")]
-    public class FlagGateContainer : Entity {
-        public EntityContainerMover Container;
+    public class FlagGateContainer : Entity, IContainer {
+        public EntityContainer Container {
+            get {
+                return _Container;
+            }
+            set {
+                if (value is EntityContainerMover mover) _Container = mover;
+            }
+        }
+
+
+        public EntityContainerMover _Container;
 
         private Vector2[] nodes;
         private string flag; // replace
@@ -94,7 +104,7 @@ namespace Celeste.Mod.EeveeHelper.Entities.Containers {
             Add(wiggler = Wiggler.Create(0.5f, 4f, f => icon.Scale = Vector2.One * (1f + f)));
             Add(openSfx = new SoundSource());
 
-            Add(Container = new EntityContainerMover(data, true) {
+            Add(_Container = new EntityContainerMover(data, true) {
                 OnFit = OnFit,
                 DefaultIgnored = e => e is FlagGateContainer,
                 OnAttach = h => Depth = Math.Min(Depth, h.Entity.Depth - 1)
@@ -129,7 +139,7 @@ namespace Celeste.Mod.EeveeHelper.Entities.Containers {
             }
 
             var newDepth = Depths.BGDecals - 1;
-            foreach (var entity in Container.GetEntities())
+            foreach (var entity in _Container.GetEntities())
                 newDepth = Math.Min(newDepth, entity.Depth - 1);
             Depth = newDepth;
 
@@ -163,7 +173,7 @@ namespace Celeste.Mod.EeveeHelper.Entities.Containers {
             Collider.Height = height;
             icon.Position = new Vector2(Width / 2f, Height / 2f) + iconOffset;
             if (staticFit) {
-                Container.DoMoveAction(() => Center = lastCenter);
+                _Container.DoMoveAction(() => Center = lastCenter);
             } else {
                 offset += Center - lastCenter;
             }
@@ -172,7 +182,7 @@ namespace Celeste.Mod.EeveeHelper.Entities.Containers {
         private void MoveTo(Vector2 center) {
             anchorPos = center;
             if (Center != center + offset + shakeAmount)
-                Container.DoMoveAction(() => Center = center + offset + shakeAmount);
+                _Container.DoMoveAction(() => Center = center + offset + shakeAmount);
         }
 
         public void StartShaking(float time = 0f) {
