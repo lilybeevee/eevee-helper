@@ -12,6 +12,10 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.EeveeHelper.Entities.Containers {
     [CustomEntity("EeveeHelper/FlagGateContainer")]
     public class FlagGateContainer : Entity, IContainer {
+        // Originally "im so hecking gay".GetHashCode(), which desynced TASes on different platforms
+        // Hardcoded to keep compatibility with older TASes but sync across future ones
+        private const int RandomGay = -1569374549;
+
         public EntityContainer Container {
             get {
                 return _Container;
@@ -83,7 +87,7 @@ namespace Celeste.Mod.EeveeHelper.Entities.Containers {
             playSounds = data.Bool("playSounds");
             var iconName = data.Attr("icon", "objects/switchgate/icon");
 
-            shakeRand = new Random("im so hecking gay".GetHashCode());
+            shakeRand = new Random(RandomGay);
 
             startPos = anchorPos = Center;
             //wasEnabled = new bool[flags.Length];
