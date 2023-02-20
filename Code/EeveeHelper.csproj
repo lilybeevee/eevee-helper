@@ -1,107 +1,60 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
-  <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{11E6128A-718B-4BF4-B8A5-70A69FAF49DE}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Celeste.Mod.EeveeHelper</RootNamespace>
-    <AssemblyName>EeveeHelper</AssemblyName>
-    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <Deterministic>true</Deterministic>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>..\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
-  <ItemGroup>
-    <Reference Include="Celeste">
-      <HintPath>..\..\..\Celeste.exe</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="FNA">
-      <HintPath>..\..\..\FNA.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="MMHOOK_Celeste">
-      <HintPath>..\..\..\MMHOOK_Celeste.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Mono.Cecil">
-      <HintPath>..\..\..\Mono.Cecil.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="MonoMod.RuntimeDetour">
-      <HintPath>..\..\..\MonoMod.RuntimeDetour.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="MonoMod.Utils">
-      <HintPath>..\..\..\MonoMod.Utils.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Xml" />
-    <Reference Include="YamlDotNet">
-      <HintPath>..\..\..\YamlDotNet.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Compat\AdventureHelperCompat.cs" />
-    <Compile Include="Components\DepthPartner.cs" />
-    <Compile Include="Components\EntityContainer.cs" />
-    <Compile Include="Components\EntityContainerMover.cs" />
-    <Compile Include="Components\TagAdderComponent.cs" />
-    <Compile Include="EeveeHelperModule.cs" />
-    <Compile Include="EeveeUtils.cs" />
-    <Compile Include="Effects\SeededStarfield.cs" />
-    <Compile Include="Entities\Containers\FlagGateContainer.cs" />
-    <Compile Include="Entities\Containers\FloatyContainer.cs" />
-    <Compile Include="Entities\Containers\HoldableContainer.cs" />
-    <Compile Include="Entities\Containers\AttachedContainer.cs" />
-    <Compile Include="Entities\HoldableTiles.cs" />
-    <Compile Include="Entities\Modifiers\FlagToggleModifier.cs" />
-    <Compile Include="Entities\Modifiers\CollidableModifier.cs" />
-    <Compile Include="Entities\Modifiers\GlobalModifier.cs" />
-    <Compile Include="Entities\PatientBooster.cs" />
-    <Compile Include="Entities\RoomChest.cs" />
-    <Compile Include="Entities\RoomChestExit.cs" />
-    <Compile Include="Entities\SMWPlatform.cs" />
-    <Compile Include="Entities\SMWTrack.cs" />
-    <Compile Include="Entities\Containers\SMWTrackContainer.cs" />
-    <Compile Include="Components\SMWTrackMover.cs" />
-    <Compile Include="Handlers\EntityHandler.cs" />
-    <Compile Include="Handlers\IAnchorProvider.cs" />
-    <Compile Include="Handlers\IMoveable.cs" />
-    <Compile Include="Handlers\Impl\Compat\MultipleNodeTrackSpinnerHandler.cs" />
-    <Compile Include="Handlers\Impl\WaterHandler.cs" />
-    <Compile Include="Handlers\Impl\RotateSpinnerHandler.cs" />
-    <Compile Include="Handlers\Impl\TrackSpinnerHandler.cs" />
-    <Compile Include="Handlers\IEntityHandler.cs" />
-    <Compile Include="Handlers\HandlerUtils.cs" />
-    <Compile Include="Handlers\Impl\ZipMoverNodeHandler.cs" />
-    <Compile Include="Handlers\IToggleable.cs" />
-    <Compile Include="InheritedDynData.cs" />
-    <Compile Include="MiscHooks.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-  </ItemGroup>
-  <ItemGroup />
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net452</TargetFramework>
+        <AssemblyName>EeveeHelper</AssemblyName>
+        <RootNamespace>Celeste.Mod.EeveeHelper</RootNamespace>
+        <LangVersion>latest</LangVersion>
+        <CelestePrefix Condition="'$(CelestePrefix)' == '' And Exists('..\..\Celeste.exe')">..\..</CelestePrefix>
+        <CelestePrefix Condition="'$(CelestePrefix)' == '' And Exists('..\..\..\Celeste.exe')">..\..\..</CelestePrefix>
+        <CelestePrefix Condition="'$(CelestePrefix)' == ''">lib-stripped</CelestePrefix>
+        <CelesteType Condition="'$(CelesteType)' == '' And Exists('$(CelestePrefix)\BuildIsXNA.txt')">XNA</CelesteType>
+        <CelesteType Condition="'$(CelesteType)' == ''">FNA</CelesteType>
+        <XNAPath Condition="'$(XNAPath)' == ''">$(WINDIR)\Microsoft.NET\assembly\GAC_32\{0}\v4.0_4.0.0.0__842cf8be1de50553\{0}.dll</XNAPath>
+    </PropertyGroup>
+
+    <!--Disable "Copy Local" for all references-->
+    <ItemDefinitionGroup>
+        <PackageReference PrivateAssets="all" ExcludeAssets="runtime" />
+        <Reference Private="false" />
+    </ItemDefinitionGroup>
+
+    <ItemGroup>
+        <PackageReference Include="MonoMod.RuntimeDetour" Version="22.01.04.03" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Reference Include="$(CelestePrefix)\Celeste.exe" />
+        <Reference Include="$(CelestePrefix)\MMHOOK_Celeste.dll" />
+    </ItemGroup>
+
+    <Choose>
+        <When Condition="'$(CelesteType)' == 'FNA'">
+            <ItemGroup>
+                <Reference Include="$(CelestePrefix)\FNA.dll" />
+            </ItemGroup>
+        </When>
+
+        <When Condition="'$(CelesteType)' == 'XNA'">
+            <ItemGroup>
+                <Reference Include="$([System.String]::Format('$(XNAPath)', 'Microsoft.Xna.Framework'))" />
+                <Reference Include="$([System.String]::Format('$(XNAPath)', 'Microsoft.Xna.Framework.Game'))" />
+                <Reference Include="$([System.String]::Format('$(XNAPath)', 'Microsoft.Xna.Framework.Graphics'))" />
+            </ItemGroup>
+        </When>
+    </Choose>
+
+    <Target Name="CopyFiles" AfterTargets="Build">
+        <Copy SourceFiles="$(OutputPath)\$(AssemblyName).dll" DestinationFolder="bin" />
+        <Copy SourceFiles="$(OutputPath)\$(AssemblyName).pdb" DestinationFolder="bin" />
+    </Target>
+    
+    <PropertyGroup>
+        <PathMap>$(MSBuildProjectDirectory)=EeveeHelper/</PathMap>
+    </PropertyGroup>
+    
+    <PropertyGroup>
+        <ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>None</ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>
+    </PropertyGroup>
+
 </Project>
