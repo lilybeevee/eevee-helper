@@ -10,13 +10,16 @@ using System.Threading.Tasks;
 
 namespace Celeste.Mod.EeveeHelper.Entities {
     [CustomEntity("EeveeHelper/SMWTrackContainer")]
-    public class SMWTrackContainer : Entity {
+    public class SMWTrackContainer : Entity, IContainer {
+        public EntityContainer Container => _Container;
+
         private string moveFlag;
         private bool notFlag;
         private bool startOnTouch;
         private bool disableBoost;
+        private bool liftSpeedFix;
 
-        public EntityContainerMover Container;
+        public EntityContainerMover _Container;
         public SMWTrackMover Mover;
 
         private bool started;
@@ -36,9 +39,10 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             startOnTouch = data.Bool("startOnTouch");
             disableBoost = data.Bool("disableBoost");
 
-            Add(Container = new EntityContainerMover(data) {
+            Add(_Container = new EntityContainerMover(data) {
                 DefaultIgnored = e => e.Get<SMWTrackMover>() != null || e is SMWTrack
             });
+
 
             Add(Mover = new SMWTrackMover {
                 Direction = data.Enum<Facings>("direction"),
@@ -46,7 +50,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
                 Gravity = data.Float("gravity"),
                 FallSpeed = data.Float("fallSpeed"),
                 GetPosition = () => Center,
-                SetPosition = (pos, move) => Container.DoMoveAction(() => Center = pos, (h, delta) => EeveeUtils.GetTrackBoost(move, disableBoost))
+                SetPosition = (pos, move) => _Container.DoMoveAction(() => Center = pos, (h, delta) => EeveeUtils.GetTrackBoost(move, disableBoost))
             });
 
             if (startOnTouch) {
@@ -67,7 +71,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
         }
 
         private bool PlayerCheck() {
-            foreach (var entity in Container.GetEntities()) {
+            foreach (var entity in _Container.GetEntities()) {
                 if (entity is Solid solid) {
                     if (solid.HasPlayerRider())
                         return true;

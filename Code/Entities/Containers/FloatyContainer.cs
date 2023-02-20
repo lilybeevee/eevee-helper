@@ -10,8 +10,10 @@ using System.Threading.Tasks;
 
 namespace Celeste.Mod.EeveeHelper.Entities {
     [CustomEntity("EeveeHelper/FloatyContainer")]
-    public class FloatyContainer : Entity {
-        public EntityContainerMover Container;
+    public class FloatyContainer : Entity, IContainer {
+        public EntityContainer Container => _Container;
+
+        public EntityContainerMover _Container { get; set; }
         private bool disablePush;
         private float floatSpeed;
         private float floatMove;
@@ -26,6 +28,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
         private float sineWave;
         private float dashEase;
         private Vector2 dashDirection;
+        private bool liftSpeedFix;
 
         public FloatyContainer(EntityData data, Vector2 offset) : base(data.Position + offset) {
             Collider = new Hitbox(data.Width, data.Height);
@@ -43,9 +46,10 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             if (!data.Bool("disableSpawnOffset"))
                 sineWave = Calc.Random.NextFloat((float)Math.PI * 2f);
 
-            Add(Container = new EntityContainerMover(data, fitContained: false) {
+            Add(_Container = new EntityContainerMover(data, fitContained: false) {
                 DefaultIgnored = e => e is FloatyContainer
             });
+            liftSpeedFix = data.Bool("liftSpeedFix", false);
 
             anchorPosition = Position;
         }
@@ -54,16 +58,15 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             base.Awake(scene);
             if (disablePush)
                 return;
-            foreach (var contained in Container.Contained) {
-                if (contained is Platform platform) {
+            foreach (var contained in _Container.Contained) {
+                if (contained.Entity is Platform platform) {
                     var prevCollision = platform.OnDashCollide;
+                    platform.OnDashCollide = null;
                     platform.OnDashCollide = (player, direction) => {
-                        var result = DashCollisionResults.NormalCollision;
-                        if (prevCollision != null)
-                            result = prevCollision(player, direction);
-                        if (dashEase <= 0.2f) {
-                            dashEase = 1f;
-                            dashDirection = direction;
+                        var result = prevCollision?.Invoke(player, direction) ?? DashCollisionResults.NormalCollision;
+                        if (this.dashEase <= 0.2f) {
+                            this.dashEase = 1f;
+                            this.dashDirection = direction;
                         }
                         if (result == DashCollisionResults.NormalCollision)
                             return DashCollisionResults.NormalOverride;
@@ -77,7 +80,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
         public override void Update() {
             base.Update();
 
-            if (!Container.Attached)
+            if (!_Container.Attached)
                 return;
 
             if (HasRider())
@@ -94,20 +97,20 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             dashEase = Calc.Approach(dashEase, 0f, Engine.DeltaTime * 1.5f * pushSpeed);
 
             var lastPos = Position;
-            Container.DoMoveAction(MoveToTarget);
+            _Container.DoMoveAction(MoveToTarget, null, liftSpeedFix);
         }
 
         private void MoveToTarget() {
             var sine = (float)Math.Sin(sineWave * floatSpeed) * floatMove;
             var push = Calc.YoYo(Ease.QuadIn(dashEase)) * dashDirection * pushMove;
 
-            var targetY = MathHelper.Lerp(anchorPosition.Y, anchorPosition.Y + sinkMove, Ease.SineInOut(yLerp)) + sine;
+            var targetY = MathHelper.Lerp(anchorPosition.Y, anchorPosition.Y + sinkMove * (HasRider() ? 3 : 1), Ease.SineInOut(yLerp)) + sine;
             Position = new Vector2(anchorPosition.X + push.X, targetY + push.Y);
         }
 
         private bool HasRider() {
-            foreach (var contained in Container.Contained)
-                if ((contained is Solid solid && solid.HasPlayerRider()) || (contained is JumpThru jumpThru && jumpThru.HasPlayerRider()))
+            foreach (var contained in _Container.Contained)
+                if ((contained.Entity is Solid solid && solid.HasPlayerRider()) || (contained.Entity is JumpThru jumpThru && jumpThru.HasPlayerRider()))
                     return true;
             return false;
         }

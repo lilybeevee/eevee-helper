@@ -11,13 +11,13 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.EeveeHelper.Handlers.Impl {
     public class ZipMoverNodeHandler : EntityHandler, IMoveable, IAnchorProvider {
         private bool first;
-        private DynData<ZipMover> entityData;
+        private DynamicData entityData;
         private DynamicData pathRendererData;
         
         public ZipMoverNodeHandler(Entity entity, bool first) : base(entity) {
             this.first = first;
 
-            entityData = new DynData<ZipMover>(entity as ZipMover);
+            entityData = DynamicData.For(entity as ZipMover);
 
             if (first) {
                 entityData.Set("zipMoverNodeHandled", true);
@@ -76,7 +76,7 @@ namespace Celeste.Mod.EeveeHelper.Handlers.Impl {
         public List<string> GetAnchors() => new List<string>();
 
 
-        public static bool InsideCheck(EntityContainer container, bool first, DynData<ZipMover> data) {
+        public static bool InsideCheck(EntityContainer container, bool first, DynamicData data) {
             var pos = data.Get<Vector2>(first ? "start" : "target");
             return pos.X >= container.Entity.Left && pos.Y >= container.Entity.Top &&
                 pos.X <= container.Entity.Right && pos.Y <= container.Entity.Bottom;

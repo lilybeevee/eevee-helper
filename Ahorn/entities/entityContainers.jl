@@ -56,7 +56,8 @@ const placements = Ahorn.PlacementDict(
         "rectangle",
         Dict{String, Any}(
             "holdable" => true,
-            "gravity" => true
+            "gravity" => true,
+            "liftSpeedFix" => true
         )
     ),
     "Entity Container (Falling)\n(Eevee Helper)" => Ahorn.EntityPlacement(
@@ -64,7 +65,8 @@ const placements = Ahorn.PlacementDict(
         "rectangle",
         Dict{String, Any}(
             "holdable" => false,
-            "gravity" => true
+            "gravity" => true,
+            "liftSpeedFix" => true
         )
     ),
     "Entity Container (Attached)\n(Eevee Helper)" => Ahorn.EntityPlacement(
@@ -73,11 +75,17 @@ const placements = Ahorn.PlacementDict(
     ),
     "Entity Container (Floaty)\n(Eevee Helper)" => Ahorn.EntityPlacement(
         FloatyContainer,
-        "rectangle"
+        "rectangle",
+        Dict{String, Any}(
+            "liftSpeedFix" => true
+        )
     ),
     "Entity Container (SMW Track)\n(Eevee Helper)" => Ahorn.EntityPlacement(
         SMWTrackContainer,
-        "rectangle"
+        "rectangle",
+        Dict{String, Any}(
+            "liftSpeedFix" => true
+        )
     ),
     "Entity Container (Switch Gate)\n(Eevee Helper)" => Ahorn.EntityPlacement(
         FlagGateContainer,

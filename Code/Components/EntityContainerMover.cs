@@ -6,11 +6,17 @@ using MonoMod.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace Celeste.Mod.EeveeHelper.Components {
     public class EntityContainerMover : EntityContainer {
+        internal static FieldInfo platform_staticMovers = typeof(Platform).GetField("staticMovers", BindingFlags.Instance | BindingFlags.NonPublic);
+
+        public static bool LiftSpeedFix;
+        public static bool DecalStaticMoverFix;
+
         private static Dictionary<Type, List<Type>> EntityHandlers = new Dictionary<Type, List<Type>>();
 
         private static HashSet<string> IgnoredAnchors = new HashSet<string>() {
@@ -116,7 +122,7 @@ namespace Celeste.Mod.EeveeHelper.Components {
             Padding = new Vector4(Entity.Width / 2f, Entity.Height / 2f, Entity.Width / 2f, Entity.Height / 2f);
         }
 
-        public void DoMoveAction(Action moveAction, Func<Entity, Vector2, Vector2?> liftSpeedGetter = null) {
+        public void DoMoveAction(Action moveAction, Func<Entity, Vector2, Vector2?> liftSpeedGetter = null, bool liftSpeedFix = false) {
             Cleanup();
             var anchorOffsets = new Dictionary<Entity, Dictionary<string, Vector2>>();
             var collidable = new Dictionary<Entity, bool>();
@@ -156,6 +162,9 @@ namespace Celeste.Mod.EeveeHelper.Components {
                     }
                 }
             }
+            if (liftSpeedFix)
+                LiftSpeedFix = true;
+            DecalStaticMoverFix = true;
             foreach (var entity in toMove) {
                 if (entity is Platform platform) {
                     var liftSpeed = liftSpeedGetter?.Invoke(entity, moveOffset);
@@ -170,6 +179,9 @@ namespace Celeste.Mod.EeveeHelper.Components {
                     entity.Position += moveOffset;
                 }
             }
+            DecalStaticMoverFix = false;
+            if (liftSpeedFix)
+                LiftSpeedFix = false;
             Entity.Collidable = selfCollidable;
             OnPostMove?.Invoke();
         }

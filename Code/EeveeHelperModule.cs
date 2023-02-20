@@ -35,10 +35,18 @@ namespace Celeste.Mod.EeveeHelper {
             EntityHandler.RegisterInherited<TrackSpinner>((entity, container) => new TrackSpinnerHandler(entity));
             EntityHandler.RegisterInherited<RotateSpinner>((entity, container) => new RotateSpinnerHandler(entity));
 
+            EntityHandler.RegisterInherited<DashSwitch>((entity, container) => new AxisMoverHandler(entity, new Tuple<string, bool>("startY", true)));
+
             EntityHandler.RegisterInherited<ZipMover>((entity, container) => new ZipMoverNodeHandler(entity, true),
-                (entity, container) => ZipMoverNodeHandler.InsideCheck(container, true, new DynData<ZipMover>(entity as ZipMover)));
+                (entity, container) => ZipMoverNodeHandler.InsideCheck(container, true, DynamicData.For(entity as ZipMover)));
             EntityHandler.RegisterInherited<ZipMover>((entity, container) => new ZipMoverNodeHandler(entity, false),
-                (entity, container) => ZipMoverNodeHandler.InsideCheck(container, false, new DynData<ZipMover>(entity as ZipMover)));
+                (entity, container) => ZipMoverNodeHandler.InsideCheck(container, false, DynamicData.For(entity as ZipMover)));
+            EntityHandler.RegisterInherited<SwapBlock>((entity, container) => new SwapBlockHandler(entity, true),
+                (entity, container) => SwapBlockHandler.InsideCheck(container, true, DynamicData.For(entity as SwapBlock)));
+            EntityHandler.RegisterInherited<SwapBlock>((entity, container) => new SwapBlockHandler(entity, false),
+                (entity, container) => SwapBlockHandler.InsideCheck(container, false, DynamicData.For(entity as SwapBlock)));
+            EntityHandler.RegisterInherited<Decal>((entity, container) => new DecalHandler(entity),
+                (entity, container) => container.CheckDecal(entity as Decal));
         }
 
         public override void Unload() {

@@ -1,0 +1,177 @@
+#TODO: Edit this, so that lonn can append [modname] to entity placements automatically.
+mods.EeveeHelper.name=Eevee Helper
+# Holdable Tiles
+entities.EeveeHelper/HoldableTiles.placements.name.default=Holdable Tiles
+entities.EeveeHelper/HoldableTiles.attributes.description.tiletype=Changes the appearance of the block.
+entities.EeveeHelper/HoldableTiles.attributes.description.noDuplicate=Whether the block doesn't duplicate if you enter the room holding it.
+entities.EeveeHelper/HoldableTiles.attributes.description.holdable=Whether you can pick up and throw the block.
+entities.EeveeHelper/HoldableTiles.attributes.description.destroyable=Whether the block gets destroyed on contact with seeker barriers.
+
+# All Containers
+entities.EeveeHelper/HoldableContainer.placements.name.holdable=Holdable Container (Holdable)
+entities.EeveeHelper/HoldableContainer.placements.name.falling=Holdable Container (Falling)
+entities.EeveeHelper/HoldableContainer.attributes.description.containMode=Determines how the container contains entities.\n - RoomStart: Whitelisted entities inside the container at the start of the room are the only entities that will be contained.\n - FlagChanged: Entities are re-contained whenever the flag is enabled. This means you can delay containment with a flag to contain something like the Player.\n - Always: Whitelisted entities inside the container are always affected, and entities outside the container are no longer affected.
+entities.EeveeHelper/HoldableContainer.attributes.description.containFlag=The container will only be enabled when the flag is active. Empty for always enabled. (Prefix flag name with "!" to invert, e.g. !myFlag)
+entities.EeveeHelper/HoldableContainer.attributes.description.whitelist=Comma-separated list of entity class names to contain (e.g. Booster,CrystalStaticSpinner,etc). Contains most entities if empty.
+entities.EeveeHelper/HoldableContainer.attributes.description.blacklist=Comma-separated list of entity class names to ignore (e.g. Booster,CrystalStaticSpinner,etc). Includes Players, SolidTiles, BackgroundTiles, Decals and Triggers unless specifically whitelisted.
+entities.EeveeHelper/HoldableContainer.attributes.description.ignoreAnchors=Disables the movement of internal "anchor positions", which usually store the start position of the entity.
+entities.EeveeHelper/HoldableContainer.attributes.description.forceStandardBehavior=Disables new special-cased behaviour for entities. New special behaviour may be added at any time, so enable this option if you're taking advantage of any buggy/jank behaviour.
+
+entities.EeveeHelper/AttachedContainer.placements.name.default=Attached Container
+entities.EeveeHelper/AttachedContainer.attributes.description.containMode=Determines how the container contains entities.\n - RoomStart: Whitelisted entities inside the container at the start of the room are the only entities that will be contained.\n - FlagChanged: Entities are re-contained whenever the flag is enabled. This means you can delay containment with a flag to contain something like the Player.\n - Always: Whitelisted entities inside the container are always affected, and entities outside the container are no longer affected.
+entities.EeveeHelper/AttachedContainer.attributes.description.containFlag=The container will only be enabled when the flag is active. Empty for always enabled. (Prefix flag name with "!" to invert, e.g. !myFlag)
+entities.EeveeHelper/AttachedContainer.attributes.description.whitelist=Comma-separated list of entity class names to contain (e.g. Booster,CrystalStaticSpinner,etc). Contains most entities if empty.
+entities.EeveeHelper/AttachedContainer.attributes.description.blacklist=Comma-separated list of entity class names to ignore (e.g. Booster,CrystalStaticSpinner,etc). Includes Players, SolidTiles, BackgroundTiles, Decals and Triggers unless specifically whitelisted.
+entities.EeveeHelper/AttachedContainer.attributes.description.ignoreAnchors=Disables the movement of internal "anchor positions", which usually store the start position of the entity.
+entities.EeveeHelper/AttachedContainer.attributes.description.forceStandardBehavior=Disables new special-cased behaviour for entities. New special behaviour may be added at any time, so enable this option if you're taking advantage of any buggy/jank behaviour.
+
+entities.EeveeHelper/FloatyContainer.placements.name.default=Floaty Container
+entities.EeveeHelper/FloatyContainer.attributes.description.containMode=Determines how the container contains entities.\n - RoomStart: Whitelisted entities inside the container at the start of the room are the only entities that will be contained.\n - FlagChanged: Entities are re-contained whenever the flag is enabled. This means you can delay containment with a flag to contain something like the Player.\n - Always: Whitelisted entities inside the container are always affected, and entities outside the container are no longer affected.
+entities.EeveeHelper/FloatyContainer.attributes.description.containFlag=The container will only be enabled when the flag is active. Empty for always enabled. (Prefix flag name with "!" to invert, e.g. !myFlag)
+entities.EeveeHelper/FloatyContainer.attributes.description.whitelist=Comma-separated list of entity class names to contain (e.g. Booster,CrystalStaticSpinner,etc). Contains most entities if empty.
+entities.EeveeHelper/FloatyContainer.attributes.description.blacklist=Comma-separated list of entity class names to ignore (e.g. Booster,CrystalStaticSpinner,etc). Includes Players, SolidTiles, BackgroundTiles, Decals and Triggers unless specifically whitelisted.
+entities.EeveeHelper/FloatyContainer.attributes.description.ignoreAnchors=Disables the movement of internal "anchor positions", which usually store the start position of the entity.
+entities.EeveeHelper/FloatyContainer.attributes.description.forceStandardBehavior=Disables new special-cased behaviour for entities. New special behaviour may be added at any time, so enable this option if you're taking advantage of any buggy/jank behaviour.
+
+entities.EeveeHelper/SMWTrackContainer.placements.name.default=SMW Track Container
+entities.EeveeHelper/SMWTrackContainer.attributes.description.containMode=Determines how the container contains entities.\n - RoomStart: Whitelisted entities inside the container at the start of the room are the only entities that will be contained.\n - FlagChanged: Entities are re-contained whenever the flag is enabled. This means you can delay containment with a flag to contain something like the Player.\n - Always: Whitelisted entities inside the container are always affected, and entities outside the container are no longer affected.
+entities.EeveeHelper/SMWTrackContainer.attributes.description.containFlag=The container will only be enabled when the flag is active. Empty for always enabled. (Prefix flag name with "!" to invert, e.g. !myFlag)
+entities.EeveeHelper/SMWTrackContainer.attributes.description.whitelist=Comma-separated list of entity class names to contain (e.g. Booster,CrystalStaticSpinner,etc). Contains most entities if empty.
+entities.EeveeHelper/SMWTrackContainer.attributes.description.blacklist=Comma-separated list of entity class names to ignore (e.g. Booster,CrystalStaticSpinner,etc). Includes Players, SolidTiles, BackgroundTiles, Decals and Triggers unless specifically whitelisted.
+entities.EeveeHelper/SMWTrackContainer.attributes.description.ignoreAnchors=Disables the movement of internal "anchor positions", which usually store the start position of the entity.
+entities.EeveeHelper/SMWTrackContainer.attributes.description.forceStandardBehavior=Disables new special-cased behaviour for entities. New special behaviour may be added at any time, so enable this option if you're taking advantage of any buggy/jank behaviour.
+
+entities.EeveeHelper/FlagGateContainer.placements.name.default=Flag Gate Container
+entities.EeveeHelper/FlagGateContainer.placements.name.switchGate=Flag Gate Container (Switch Gate)
+entities.EeveeHelper/FlagGateContainer.placements.name.flagMover=Flag Gate Container (Flag Mover)
+entities.EeveeHelper/FlagGateContainer.attributes.description.containMode=Determines how the container contains entities.\n - RoomStart: Whitelisted entities inside the container at the start of the room are the only entities that will be contained.\n - FlagChanged: Entities are re-contained whenever the flag is enabled. This means you can delay containment with a flag to contain something like the Player.\n - Always: Whitelisted entities inside the container are always affected, and entities outside the container are no longer affected.
+entities.EeveeHelper/FlagGateContainer.attributes.description.containFlag=The container will only be enabled when the flag is active. Empty for always enabled. (Prefix flag name with "!" to invert, e.g. !myFlag)
+entities.EeveeHelper/FlagGateContainer.attributes.description.whitelist=Comma-separated list of entity class names to contain (e.g. Booster,CrystalStaticSpinner,etc). Contains most entities if empty.
+entities.EeveeHelper/FlagGateContainer.attributes.description.blacklist=Comma-separated list of entity class names to ignore (e.g. Booster,CrystalStaticSpinner,etc). Includes Players, SolidTiles, BackgroundTiles, Decals and Triggers unless specifically whitelisted.
+entities.EeveeHelper/FlagGateContainer.attributes.description.ignoreAnchors=Disables the movement of internal "anchor positions", which usually store the start position of the entity.
+entities.EeveeHelper/FlagGateContainer.attributes.description.forceStandardBehavior=Disables new special-cased behaviour for entities. New special behaviour may be added at any time, so enable this option if you're taking advantage of any buggy/jank behaviour.
+
+# All Modifiers
+entities.EeveeHelper/FlagToggleModifier.placements.name.default=Flag Toggle Modifier
+entities.EeveeHelper/FlagToggleModifier.attributes.description.containMode=Determines how the container contains entities.\n - RoomStart: Whitelisted entities inside the container at the start of the room are the only entities that will be contained.\n - FlagChanged: Entities are re-contained whenever the flag is enabled. This means you can delay containment with a flag to contain something like the Player.\n - Always: Whitelisted entities inside the container are always affected, and entities outside the container are no longer affected.
+entities.EeveeHelper/FlagToggleModifier.attributes.description.containFlag=The container will only be enabled when the flag is active. Empty for always enabled. (Prefix flag name with "!" to invert, e.g. !myFlag)
+entities.EeveeHelper/FlagToggleModifier.attributes.description.whitelist=Comma-separated list of entity class names to contain (e.g. Booster,CrystalStaticSpinner,etc). Contains most entities if empty.
+entities.EeveeHelper/FlagToggleModifier.attributes.description.blacklist=Comma-separated list of entity class names to ignore (e.g. Booster,CrystalStaticSpinner,etc). Includes Players, SolidTiles, BackgroundTiles, Decals and Triggers unless specifically whitelisted.
+entities.EeveeHelper/FlagToggleModifier.attributes.description.forceStandardBehavior=Disables new special-cased behaviour for entities. New special behaviour may be added at any time, so enable this option if you're taking advantage of any buggy/jank behaviour.
+
+entities.EeveeHelper/CollidableModifier.placements.name.default=Collidable Modifier
+entities.EeveeHelper/CollidableModifier.placements.name.noCollide=Collidable Modifier (No Collide)
+entities.EeveeHelper/CollidableModifier.placements.name.solidify=Collidable Modifier (Solidify)
+entities.EeveeHelper/CollidableModifier.attributes.description.containMode=Determines how the container contains entities.\n - RoomStart: Whitelisted entities inside the container at the start of the room are the only entities that will be contained.\n - FlagChanged: Entities are re-contained whenever the flag is enabled. This means you can delay containment with a flag to contain something like the Player.\n - Always: Whitelisted entities inside the container are always affected, and entities outside the container are no longer affected.
+entities.EeveeHelper/CollidableModifier.attributes.description.containFlag=The container will only be enabled when the flag is active. Empty for always enabled. (Prefix flag name with "!" to invert, e.g. !myFlag)
+entities.EeveeHelper/CollidableModifier.attributes.description.whitelist=Comma-separated list of entity class names to contain (e.g. Booster,CrystalStaticSpinner,etc). Contains most entities if empty.
+entities.EeveeHelper/CollidableModifier.attributes.description.blacklist=Comma-separated list of entity class names to ignore (e.g. Booster,CrystalStaticSpinner,etc). Includes Players, SolidTiles, BackgroundTiles, Decals and Triggers unless specifically whitelisted.
+entities.EeveeHelper/CollidableModifier.attributes.description.forceStandardBehavior=Disables new special-cased behaviour for entities. New special behaviour may be added at any time, so enable this option if you're taking advantage of any buggy/jank behaviour.
+
+# Holdable Container
+entities.EeveeHelper/HoldableContainer.attributes.description.fitContained=Whether the container's box is resized if entities inside it move.
+entities.EeveeHelper/HoldableContainer.attributes.description.gravity=Whether the container has gravity and gets pushed by solids.
+entities.EeveeHelper/HoldableContainer.attributes.description.holdable=Whether you can pick up and throw the container.
+entities.EeveeHelper/HoldableContainer.attributes.description.noDuplicate=Whether the container doesn't duplicate if you enter the room holding it.
+entities.EeveeHelper/HoldableContainer.attributes.description.slowRun=Whether holding the container slows the player down.
+entities.EeveeHelper/HoldableContainer.attributes.description.slowFall=Makes the container behave like a jelly.
+entities.EeveeHelper/HoldableContainer.attributes.description.destroyable=Whether the container gets destroyed on contact with seeker barriers.
+entities.EeveeHelper/HoldableContainer.attributes.description.respawn=Whether the container respawns after being destroyed (by seeker barriers or falling).
+entities.EeveeHelper/HoldableContainer.attributes.description.tutorial=Whether the container should show the holdable usage tutorial.
+entities.EeveeHelper/HoldableContainer.attributes.description.waitForGrab=Disables gravity until the container is picked up.
+
+# Attached Container
+entities.EeveeHelper/AttachedContainer.attributes.description.fitContained=Whether contained entities are forcefully kept inside the container.
+entities.EeveeHelper/AttachedContainer.attributes.description.attachMode=Determines how the container attaches to entities.\n - RoomStart: The first valid entity at the start of the room is the only entity that will be attached to.\n - FlagChanged: The container is re-attached whenever the flag is enabled. This means you can delay attachment with a flag to attach to something like the Player.\n - Always: While the flag is active and not attached to an entity, the container will constantly try to attach to a valid entity.
+entities.EeveeHelper/AttachedContainer.attributes.description.attachFlag=The container will only be attached when the flag is active. Empty for always attached. (Prefix flag name with "!" to invert, e.g. !myFlag)
+entities.EeveeHelper/AttachedContainer.attributes.description.attachTo=Attaches to an entity with the given entity class name (e.g. DustTrackSpinner). Attaches to solids and jumpthrus if empty.
+entities.EeveeHelper/AttachedContainer.attributes.description.restrictToNode=Strictly attaches to entities at the node position. If this is disabled and there is a node, the container will attempt to attach to the entity closest to the node.
+entities.EeveeHelper/AttachedContainer.attributes.description.onlyX=Restricts container movement to the X axis.
+entities.EeveeHelper/AttachedContainer.attributes.description.onlyY=Restricts container movement to the Y axis.
+entities.EeveeHelper/AttachedContainer.attributes.description.matchCollidable=Makes contained entities uncollidable if the entity attached to is uncollidable.
+entities.EeveeHelper/AttachedContainer.attributes.description.matchVisible=Makes contained entities invisible if the entity attached to is invisible.
+entities.EeveeHelper/AttachedContainer.attributes.description.destroyable=Whether
+
+# Floaty Container
+entities.EeveeHelper/FloatyContainer.attributes.description.floatMove=Distance the container moves from idle floating.
+entities.EeveeHelper/FloatyContainer.attributes.description.floatSpeed=Speed at which the container idly floats.
+entities.EeveeHelper/FloatyContainer.attributes.description.pushMove=Distance the container moves from being dashed into.
+entities.EeveeHelper/FloatyContainer.attributes.description.pushSpeed=Speed at which the container rebounds from being dashed into.
+entities.EeveeHelper/FloatyContainer.attributes.description.sinkMove=Distance the container sinks from being stood on.
+entities.EeveeHelper/FloatyContainer.attributes.description.sinkSpeed=Speed at which the container sinks from being stood on.
+entities.EeveeHelper/FloatyContainer.attributes.description.disablePush=Disables the container from being "pushed" when dashed into.
+entities.EeveeHelper/FloatyContainer.attributes.description.disableSpawnOffset=Makes the container start floating at its actual position, instead of a random point.
+
+# SMW Track Container
+entities.EeveeHelper/SMWTrackContainer.attributes.description.fitContained=Whether contained entities are forcefully kept inside the container.
+entities.EeveeHelper/SMWTrackContainer.attributes.description.fallSpeed=Maximum speed at which the container falls when off track.
+entities.EeveeHelper/SMWTrackContainer.attributes.description.gravity=Acceleration of the container falling when off track.
+entities.EeveeHelper/SMWTrackContainer.attributes.description.moveFlag=Flag that must be active for the container to move. Empty for always active. (Prefix flag name with "!" to invert, e.g. !myFlag)
+entities.EeveeHelper/SMWTrackContainer.attributes.description.moveSpeed=Speed at which the container moves along the track.
+entities.EeveeHelper/SMWTrackContainer.attributes.description.direction=Initial direction the container moves along its track.
+entities.EeveeHelper/SMWTrackContainer.attributes.description.disableBoost=Disables horizontal boost from track movement.
+entities.EeveeHelper/SMWTrackContainer.attributes.description.startOnTouch=Makes the container only start moving when the player touches a contained entity.
+
+# Flag Gate Container
+entities.EeveeHelper/FlagGateContainer.attributes.description.fitContained=Whether the container's box is resized if entities inside it move.
+entities.EeveeHelper/FlagGateContainer.attributes.description.activeColor=The color of the icon while it's moving.
+entities.EeveeHelper/FlagGateContainer.attributes.description.finishColor=The color of the icon after it reaches its destination.
+entities.EeveeHelper/FlagGateContainer.attributes.description.inactiveColor=The color of the icon while it's at the start position.
+entities.EeveeHelper/FlagGateContainer.attributes.description.moveFlag=The flag that activates this gate. Leave empty to function like a normal switch gate.
+entities.EeveeHelper/FlagGateContainer.attributes.description.moveTime=How long, in seconds, the container takes to move to the other node.
+entities.EeveeHelper/FlagGateContainer.attributes.description.shakeTime=How long the container shakes before moving. If set higher than 0, the container will also briefly shake when stopping.
+entities.EeveeHelper/FlagGateContainer.attributes.description.easing=The easing of the container's movement between nodes.
+entities.EeveeHelper/FlagGateContainer.attributes.description.icon=The switch gate icon overlayed on the container. Can be dragged around to change position. (Icons are detected from "objects/MaxHelpingHand/flagSwitchGate/" and "objects/EeveeHelper/flagGateIcons/")
+entities.EeveeHelper/FlagGateContainer.attributes.description.canReturn=Whether the container will return to its original position if the flag is deactivated.
+entities.EeveeHelper/FlagGateContainer.attributes.description.staticFit=Whether the contained entities are forcefully locked to the node path with Fit Contained enabled.
+entities.EeveeHelper/FlagGateContainer.attributes.description.playSounds=Disables sounds playing when the container starts and stops moving.
+entities.EeveeHelper/FlagGateContainer.attributes.description.iconVisible=Whether to overlay a switch gate icon on the container.
+
+# Flag Toggle Modifier
+entities.EeveeHelper/FlagToggleModifier.attributes.description.flag=Flag that toggles whether the modified entities are active. Empty for always active. (Prefix flag name with "!" to invert, e.g. !myFlag)
+
+# Collidable Modifier
+entities.EeveeHelper/CollidableModifier.attributes.description.noCollide=Disables collision for the modified entities.
+entities.EeveeHelper/CollidableModifier.attributes.description.solidify=Makes all modified entities solid and climbable.
+
+# Global Modifier
+entities.EeveeHelper/GlobalModifier.placements.name.default=Global Modifier
+entities.EeveeHelper/GlobalModifier.attributes.description.whitelist=Comma-separated list of ahorn entity names / entity IDs to contain (e.g. glider,EeveeHelper/PatientBooster,88,etc). Contains all entities if empty.
+entities.EeveeHelper/GlobalModifier.attributes.description.
+
+
+# SMW Track
+entities.EeveeHelper/SMWTrack.placements.name.default=SMWTrack
+entities.EeveeHelper/SMWTrack.attributes.description.color=The hex color of the track.
+entities.EeveeHelper/SMWTrack.attributes.description.inactiveColor=(Optional) The hex color of the track when the flag is inactive.
+entities.EeveeHelper/SMWTrack.attributes.description.endOpenFlag=(Optional) Flag that toggles whether the end of the track is open.
+entities.EeveeHelper/SMWTrack.attributes.description.startOpenFlag=(Optional) Flag that toggles whether the start of the track is open.
+entities.EeveeHelper/SMWTrack.attributes.description.flag=(Optional) Flag that toggles whether the track is active.
+entities.EeveeHelper/SMWTrack.attributes.description.endOpen=Whether the end of the track is open, letting movers fall off.
+entities.EeveeHelper/SMWTrack.attributes.description.startOpen=Whether the start of the track is open, letting movers fall off.
+entities.EeveeHelper/SMWTrack.attributes.description.hidden=Disables visibility of the track.
+entities.EeveeHelper/SMWTrack.attributes.description.hideInactive=Disables visibility of the track when the flag is inactive.
+entities.EeveeHelper/SMWTrack.attributes.description.notFlag=Inverts the flag requirement for the track to be active.
+
+# SMW Platform
+entities.EeveeHelper/SMWPlatform.placements.name.default=SMWPlatform
+entities.EeveeHelper/SMWPlatform.attributes.description.fallSpeed=Maximum speed at which the platform falls when off track.
+entities.EeveeHelper/SMWPlatform.attributes.description.flag=Flag that must be active for the platform to move. Empty for always active.
+entities.EeveeHelper/SMWPlatform.attributes.description.gravity=Acceleration of the platform falling when off track.
+entities.EeveeHelper/SMWPlatform.attributes.description.moveSpeed=Speed at which the platform moves along the track.
+entities.EeveeHelper/SMWPlatform.attributes.description.texturePath=Path to the graphics folder containing the platform textures.
+entities.EeveeHelper/SMWPlatform.attributes.description.direction=Initial direction the platform moves along its track.
+entities.EeveeHelper/SMWPlatform.attributes.description.disableBoost=Disables horizontal boost from track movement.
+entities.EeveeHelper/SMWPlatform.attributes.description.notFlag=Inverts the flag requirement for the platform to move.
+entities.EeveeHelper/SMWPlatform.attributes.description.startOnTouch=Makes the platform only start moving when the player touches it.
+
+# Room Chest
+entities.EeveeHelper/RoomChest.placements.name.default=Room Chest (WIP)
+entities.EeveeHelper/RoomChest.attributes.description.room=Name of the room this chest should take you to.
+
+# Room Chest Exit
+entities.EeveeHelper/RoomChestExit.placements.name.default=Room Chest Exit (WIP)
+
+# Patient Booster
+entities.EeveeHelper/PatientBooster.placements.name.default=Patient Booster
+entities.EeveeHelper/PatientBooster.placements.name.red=Patient Booster (Red)

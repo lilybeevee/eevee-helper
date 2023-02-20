@@ -37,7 +37,10 @@ namespace Celeste.Mod.EeveeHelper {
             newData.Height = data.Height;
             newData.Origin = data.Origin;
             newData.Nodes = (Vector2[])data.Nodes.Clone();
-            newData.Values = new Dictionary<string, object>(data.Values);
+            if (data.Values == null)
+                newData.Values = new Dictionary<string, object>();
+            else
+                newData.Values = new Dictionary<string, object>(data.Values);
             return newData;
         }
     }

@@ -11,10 +11,10 @@ using System.Threading.Tasks;
 
 namespace Celeste.Mod.EeveeHelper.Handlers.Impl {
     class WaterHandler : EntityHandler, IMoveable {
-        private DynData<Water> entityData;
+        private DynamicData entityData;
 
         public WaterHandler(Entity entity) : base(entity) {
-            entityData = new DynData<Water>(entity as Water);
+            entityData = DynamicData.For(entity as Water);
         }
 
         public bool Move(Vector2 move, Vector2? liftSpeed) {
