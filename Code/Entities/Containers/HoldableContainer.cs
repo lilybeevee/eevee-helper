@@ -95,7 +95,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
                 Add(new TransitionListener {
                     OnOutBegin = () => {
                         if (Hold.IsHeld) {
-                            foreach (var handler in Container.Contained)
+                            foreach (var handler in _Container.Contained)
                                 handler.Entity?.AddTag(Tags.Persistent);
                         }
                     }
