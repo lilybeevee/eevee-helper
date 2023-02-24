@@ -129,6 +129,10 @@ entities.EeveeHelper/FlagGateContainer.attributes.description.iconVisible=Whethe
 
 # Flag Toggle Modifier
 entities.EeveeHelper/FlagToggleModifier.attributes.description.flag=Flag that toggles whether the modified entities are active. Empty for always active. (Prefix flag name with "!" to invert, e.g. !myFlag)
+entities.EeveeHelper/FlagToggleModifier.attributes.description.notFlag=Inverts the flag requirement for toggling entities. If enabled and no flag is specified, entities will always be disabled.
+entities.EeveeHelper/FlagToggleModifier.attributes.description.toggleActive=Controls whether toggling will affect if entities update (move/act on their own).
+entities.EeveeHelper/FlagToggleModifier.attributes.description.toggleVisible=Controls whether toggling will affect if entities are visible.
+entities.EeveeHelper/FlagToggleModifier.attributes.description.toggleCollidable=Controls whether toggling will affect if entities are collidable.
 
 # Collidable Modifier
 entities.EeveeHelper/CollidableModifier.attributes.description.noCollide=Disables collision for the modified entities.

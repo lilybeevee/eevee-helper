@@ -31,7 +31,7 @@ using ..Ahorn, Maple, Ahorn.Selection
 
 @mapdef Entity "EeveeHelper/FlagToggleModifier" FlagToggleModifier(x::Integer, y::Integer, width::Integer=8, height::Integer=8,
     whitelist::String="", blacklist::String="", containMode::String="RoomStart", containFlag::String="", forceStandardBehavior::Bool=false,
-    flag::String="")
+    flag::String="", notFlag::Bool=false, toggleActive::Bool=true, toggleVisible::Bool=true, toggleCollidable::Bool=true)
 @mapdef Entity "EeveeHelper/CollidableModifier" CollidableModifier(x::Integer, y::Integer, width::Integer=8, height::Integer=8,
     whitelist::String="", blacklist::String="", containMode::String="RoomStart", containFlag::String="", forceStandardBehavior::Bool=false,
     noCollide::Bool=false, solidify::Bool=false)

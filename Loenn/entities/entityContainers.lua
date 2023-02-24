@@ -205,6 +205,10 @@ local flagToggleModifier = {
             containFlag = "",
             forceStandardBehavior = false,
             flag = "",
+            notFlag = false,
+            toggleActive = true,
+            toggleVisible = true,
+            toggleCollidable = true,
         }
     }
 }

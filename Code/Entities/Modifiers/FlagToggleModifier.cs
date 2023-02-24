@@ -14,10 +14,14 @@ using System.Threading.Tasks;
 namespace Celeste.Mod.EeveeHelper.Entities.Modifiers {
     [CustomEntity("EeveeHelper/FlagToggleModifier")]
     public class FlagToggleModifier : Entity, IContainer {
-        public bool Toggled => string.IsNullOrEmpty(flag) || SceneAs<Level>().Session.GetFlag(flag) != notFlag;
+        public bool Toggled => string.IsNullOrEmpty(flag) ? !notFlag : SceneAs<Level>().Session.GetFlag(flag) != notFlag;
 
         private string flag;
         private bool notFlag;
+
+        private bool toggleActive;
+        private bool toggleVisible;
+        private bool toggleCollidable;
 
         public EntityContainer Container { get; set; }
         private Dictionary<IEntityHandler, object> entityStates = new Dictionary<IEntityHandler, object>();
@@ -29,6 +33,13 @@ namespace Celeste.Mod.EeveeHelper.Entities.Modifiers {
             var parsedFlag = EeveeUtils.ParseFlagAttr(data.Attr("flag"));
             flag = parsedFlag.Item1;
             notFlag = parsedFlag.Item2;
+
+            if (data.Bool("notFlag"))
+                notFlag = !notFlag;
+
+            toggleActive = data.Bool("toggleActive", true);
+            toggleVisible = data.Bool("toggleVisible", true);
+            toggleCollidable = data.Bool("toggleCollidable", true);
 
             Add(Container = new EntityContainer(data) {
                 DefaultIgnored = e => e.Get<EntityContainer>() != null,
@@ -60,7 +71,9 @@ namespace Celeste.Mod.EeveeHelper.Entities.Modifiers {
                         entityStates.Add(handler, state);
                     }
                 }
-                HandlerUtils.DoAs<IToggleable>(handler, t => t.Disable(), e => EntityState.Disable(e));
+                HandlerUtils.DoAs<IToggleable>(handler,
+                    t => t.Disable(toggleActive, toggleVisible, toggleCollidable),
+                    e => EntityState.Disable(e, toggleActive, toggleVisible, toggleCollidable));
             }
         }
 
@@ -74,7 +87,9 @@ namespace Celeste.Mod.EeveeHelper.Entities.Modifiers {
         private void EnableEntity(IEntityHandler handler) {
             if (entityStates.ContainsKey(handler)) {
                 var state = entityStates[handler];
-                HandlerUtils.DoAs<IToggleable>(handler, t => t.ReadState(state), e => ((EntityState)state).Apply(e));
+                HandlerUtils.DoAs<IToggleable>(handler,
+                    t => t.ReadState(state, toggleActive, toggleVisible, toggleCollidable),
+                    e => ((EntityState)state).Apply(e, toggleActive, toggleVisible, toggleCollidable));
             }
         }
 
@@ -97,24 +112,30 @@ namespace Celeste.Mod.EeveeHelper.Entities.Modifiers {
                     TalkComponentEnabled = false;
             }
 
-            public void Apply(Entity entity) {
-                entity.Active = Active;
-                entity.Visible = Visible;
-                entity.Collidable = Collidable;
+            public void Apply(Entity entity, bool toggleActive, bool toggleVisible, bool toggleCollidable) {
+                if (toggleActive)  entity.Active = Active;
+                if (toggleVisible) entity.Visible = Visible;
 
-                var talkComponent = entity.Get<TalkComponent>();
-                if (talkComponent != null)
-                    talkComponent.Enabled = TalkComponentEnabled;
+                if (toggleCollidable) {
+                    entity.Collidable = Collidable;
+
+                    var talkComponent = entity.Get<TalkComponent>();
+                    if (talkComponent != null)
+                        talkComponent.Enabled = TalkComponentEnabled;
+                }
             }
 
-            public static void Disable(Entity entity) {
-                entity.Active = false;
-                entity.Visible = false;
-                entity.Collidable = false;
+            public static void Disable(Entity entity, bool toggleActive, bool toggleVisible, bool toggleCollidable) {
+                if (toggleActive)  entity.Active = false;
+                if (toggleVisible) entity.Visible = false;
 
-                var talkComponent = entity.Get<TalkComponent>();
-                if (talkComponent != null)
-                    talkComponent.Enabled = false;
+                if (toggleCollidable) {
+                    entity.Collidable = false;
+
+                    var talkComponent = entity.Get<TalkComponent>();
+                    if (talkComponent != null)
+                        talkComponent.Enabled = false;
+                }
             }
         }
     }

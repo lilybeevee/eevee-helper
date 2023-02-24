@@ -8,8 +8,8 @@ namespace Celeste.Mod.EeveeHelper.Handlers {
     public interface IToggleable {
         object SaveState();
 
-        void ReadState(object state);
+        void ReadState(object state, bool toggleActive, bool toggleVisible, bool toggleCollidable);
 
-        void Disable();
+        void Disable(bool toggleActive, bool toggleVisible, bool toggleCollidable);
     }
 }
