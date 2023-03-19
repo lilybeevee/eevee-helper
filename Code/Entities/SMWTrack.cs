@@ -167,18 +167,49 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             return null;
         }
 
-        public virtual Section GetIntersect(Vector2 lineFrom, Vector2 lineTo, out Vector2 intersect) {
+        public virtual Section GetIntersect(Vector2 lineFrom, Vector2 lineTo, out Vector2 intersect, float parallelTolerance = 0f) {
             intersect = Vector2.Zero;
+
             if (!Enabled)
                 return null;
-            foreach (var section in Sections)
+
+            var lineHorizontal = lineFrom.Y == lineTo.Y;
+            var lineVertical = lineFrom.X == lineTo.X;
+
+            var lineXFrom = lineTo - Vector2.UnitX * parallelTolerance;
+            var lineYFrom = lineTo - Vector2.UnitY * parallelTolerance;
+            var lineXTo = lineTo + Vector2.UnitX * parallelTolerance;
+            var lineYTo = lineTo + Vector2.UnitY * parallelTolerance;
+
+            foreach (var section in Sections) {
                 if (Collide.LineCheck(section.Start, section.End, lineFrom, lineTo, out intersect))
                     return section;
+
+                // Check for parallel lines
+                if (lineHorizontal && section.Start.Y == section.End.Y && parallelTolerance > 0f &&
+                    Collide.LineCheck(section.Start, section.End, lineYFrom, lineYTo, out intersect))
+                    return section;
+                if (lineVertical && section.Start.X == section.End.X && parallelTolerance > 0f &&
+                    Collide.LineCheck(section.Start, section.End, lineXFrom, lineXTo, out intersect))
+                    return section;
+            }
+
             return null;
         }
 
         public virtual Section GetSection(float progress)
             => Sections.FirstOrDefault(s => progress >= s.Offset && progress < s.Offset + s.Length);
+
+        public Vector2 GetPos(float progress) {
+            var section = GetSection(progress);
+            if (section == null) {
+                if (progress < 0f)
+                    section = Sections.First();
+                else
+                    section = Sections.Last();
+            }
+            return section.GetPos(progress - section.Offset);
+        }
 
         public class Section {
             public Vector2 Start;

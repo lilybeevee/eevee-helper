@@ -14,13 +14,19 @@ namespace Celeste.Mod.EeveeHelper.Entities {
         private string flag;
         private bool notFlag;
         private bool startOnTouch;
+        private bool stopAtEnd;
+        private bool once;
         private bool disableBoost;
+        private float startDelay;
 
         public SMWTrackMover Mover;
 
         private List<MTexture> gearFrames;
         private bool started;
+        private bool movedOnce;
+        private bool waitingForRestart;
         private float moved;
+        private float startTimer = 0f;
 
         public SMWPlatform(EntityData data, Vector2 offset) : base(data.Position + offset, data.Width, false) {
             Collider.Position -= new Vector2(Width / 2f, 8);
@@ -30,17 +36,28 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             flag = data.Attr("flag");
             notFlag = data.Bool("notFlag");
             startOnTouch = data.Bool("startOnTouch");
+            stopAtEnd = data.Bool("stopAtEnd");
+            once = data.Bool("moveOnce");
             disableBoost = data.Bool("disableBoost");
+            startDelay = data.Float("startDelay");
 
-            Add(Mover = new SMWTrackMover {
-                Direction = data.Enum<Facings>("direction"),
-                MoveSpeed = data.Float("moveSpeed"),
-                Gravity = data.Float("gravity"),
-                FallSpeed = data.Float("fallSpeed"),
+            Add(Mover = new SMWTrackMover(data) {
+                StopAtEnd = stopAtEnd,
+
                 GetPosition = () => ExactPosition,
                 SetPosition = (pos, move) => {
                     moved += Vector2.Distance(pos, ExactPosition) / 12f;
                     MoveTo(pos, EeveeUtils.GetTrackBoost(move, disableBoost));
+                },
+
+                OnEnd = (mover, direction) => {
+                    if (stopAtEnd) {
+                        if (startOnTouch) {
+                            started = false;
+                        }
+                        movedOnce = true;
+                        waitingForRestart = true;
+                    }
                 }
             });
 
@@ -69,6 +86,14 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             gearFrames = GFX.Game.GetAtlasSubtextures($"{texturePath}/gear");
         }
 
+        public override void Awake(Scene scene) {
+            base.Awake(scene);
+
+            // If the platform is active on spawn, skip the start delay
+            if (CheckStarted())
+                startTimer = startDelay;
+        }
+
         // sorry the vanilla code doesnt set liftspeed here
         public override void MoveHExact(int move) {
             base.MoveHExact(move);
@@ -80,10 +105,19 @@ namespace Celeste.Mod.EeveeHelper.Entities {
         }
 
         public override void Update() {
-            if (!started && startOnTouch)
-                started = HasPlayerRider();
-            Mover.Activated = started && (string.IsNullOrEmpty(flag) || SceneAs<Level>().Session.GetFlag(flag) != notFlag);
+            if (!movedOnce || !once) {
+                var active = CheckStarted();
+
+                if (active)
+                    startTimer = Calc.Approach(startTimer, startDelay, Engine.DeltaTime);
+                else
+                    startTimer = 0f;
+
+                Mover.Activated = active && startTimer >= startDelay;
+            }
+
             base.Update();
+
             if (Top > SceneAs<Level>().Bounds.Bottom)
                 RemoveSelf();
         }
@@ -92,6 +126,18 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             base.Render();
             var texture = gearFrames[(int)Math.Floor(moved) % gearFrames.Count];
             texture.DrawCentered(Position);
+        }
+
+        private bool CheckStarted() {
+            var flagActive = (string.IsNullOrEmpty(flag) || SceneAs<Level>().Session.GetFlag(flag) != notFlag);
+
+            if (waitingForRestart && (!flagActive || (startOnTouch && !HasPlayerRider())))
+                waitingForRestart = false;
+
+            if (!started && startOnTouch && !waitingForRestart)
+                started = HasPlayerRider();
+
+            return started && flagActive;
         }
     }
 }
