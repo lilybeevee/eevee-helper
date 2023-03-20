@@ -33,7 +33,8 @@ entities.EeveeHelper/FloatyContainer.attributes.description.blacklist=Comma-sepa
 entities.EeveeHelper/FloatyContainer.attributes.description.ignoreAnchors=Disables the movement of internal "anchor positions", which usually store the start position of the entity.
 entities.EeveeHelper/FloatyContainer.attributes.description.forceStandardBehavior=Disables new special-cased behaviour for entities. New special behaviour may be added at any time, so enable this option if you're taking advantage of any buggy/jank behaviour.
 
-entities.EeveeHelper/SMWTrackContainer.placements.name.default=SMW Track Container
+entities.EeveeHelper/SMWTrackContainer.placements.name.linear=SMW Track Container
+entities.EeveeHelper/SMWTrackContainer.placements.name.easing=SMW Track Container (Easing)
 entities.EeveeHelper/SMWTrackContainer.attributes.description.containMode=Determines how the container contains entities.\n - RoomStart: Whitelisted entities inside the container at the start of the room are the only entities that will be contained.\n - FlagChanged: Entities are re-contained whenever the flag is enabled. This means you can delay containment with a flag to contain something like the Player.\n - Always: Whitelisted entities inside the container are always affected, and entities outside the container are no longer affected.
 entities.EeveeHelper/SMWTrackContainer.attributes.description.containFlag=The container will only be enabled when the flag is active. Empty for always enabled. (Prefix flag name with "!" to invert, e.g. !myFlag)
 entities.EeveeHelper/SMWTrackContainer.attributes.description.whitelist=Comma-separated list of entity class names to contain (e.g. Booster,CrystalStaticSpinner,etc). Contains most entities if empty.
@@ -111,6 +112,13 @@ entities.EeveeHelper/SMWTrackContainer.attributes.description.moveSpeed=Speed at
 entities.EeveeHelper/SMWTrackContainer.attributes.description.direction=Initial direction the container moves along its track.
 entities.EeveeHelper/SMWTrackContainer.attributes.description.disableBoost=Disables horizontal boost from track movement.
 entities.EeveeHelper/SMWTrackContainer.attributes.description.startOnTouch=Makes the container only start moving when the player touches a contained entity.
+entities.EeveeHelper/SMWTrackContainer.attributes.description.moveBehaviour=Whether the container moves along the track linearly or with easing.
+entities.EeveeHelper/SMWTrackContainer.attributes.description.easing=The easing of the container's movement along the track, if move behaviour is Easing.
+entities.EeveeHelper/SMWTrackContainer.attributes.description.easeDuration=How long the container takes to ease along the track.
+entities.EeveeHelper/SMWTrackContainer.attributes.description.easeTrackDirection=Whether the track's direction should affect the easing. If enabled, the container will smoothly "bounce back" when it reaches the end of the track.
+entities.EeveeHelper/SMWTrackContainer.attributes.description.stopAtEnd=Whether the container should stop moving when it reaches the end of the track.
+entities.EeveeHelper/SMWTrackContainer.attributes.description.moveOnce=Whether the container can be re-activated after after stopping.
+entities.EeveeHelper/SMWTrackContainer.attributes.description.startDelay=The delay before the container starts moving when activated. Only applies if the container needs to be started with a touch/flag.
 
 # Flag Gate Container
 entities.EeveeHelper/FlagGateContainer.attributes.description.fitContained=Whether the container's box is resized if entities inside it move.
@@ -145,7 +153,7 @@ entities.EeveeHelper/GlobalModifier.attributes.description.
 
 
 # SMW Track
-entities.EeveeHelper/SMWTrack.placements.name.default=SMWTrack
+entities.EeveeHelper/SMWTrack.placements.name.default=SMW Track
 entities.EeveeHelper/SMWTrack.attributes.description.color=The hex color of the track.
 entities.EeveeHelper/SMWTrack.attributes.description.inactiveColor=(Optional) The hex color of the track when the flag is inactive.
 entities.EeveeHelper/SMWTrack.attributes.description.endOpenFlag=(Optional) Flag that toggles whether the end of the track is open.
@@ -158,16 +166,24 @@ entities.EeveeHelper/SMWTrack.attributes.description.hideInactive=Disables visib
 entities.EeveeHelper/SMWTrack.attributes.description.notFlag=Inverts the flag requirement for the track to be active.
 
 # SMW Platform
-entities.EeveeHelper/SMWPlatform.placements.name.default=SMWPlatform
+entities.EeveeHelper/SMWPlatform.placements.name.linear=SMW Platform
+entities.EeveeHelper/SMWPlatform.placements.name.easing=SMW Platform (Easing)
 entities.EeveeHelper/SMWPlatform.attributes.description.fallSpeed=Maximum speed at which the platform falls when off track.
 entities.EeveeHelper/SMWPlatform.attributes.description.flag=Flag that must be active for the platform to move. Empty for always active.
 entities.EeveeHelper/SMWPlatform.attributes.description.gravity=Acceleration of the platform falling when off track.
-entities.EeveeHelper/SMWPlatform.attributes.description.moveSpeed=Speed at which the platform moves along the track.
+entities.EeveeHelper/SMWPlatform.attributes.description.moveSpeed=Speed at which the platform moves along the track, if move behaviour is Linear.
 entities.EeveeHelper/SMWPlatform.attributes.description.texturePath=Path to the graphics folder containing the platform textures.
 entities.EeveeHelper/SMWPlatform.attributes.description.direction=Initial direction the platform moves along its track.
 entities.EeveeHelper/SMWPlatform.attributes.description.disableBoost=Disables horizontal boost from track movement.
 entities.EeveeHelper/SMWPlatform.attributes.description.notFlag=Inverts the flag requirement for the platform to move.
 entities.EeveeHelper/SMWPlatform.attributes.description.startOnTouch=Makes the platform only start moving when the player touches it.
+entities.EeveeHelper/SMWPlatform.attributes.description.moveBehaviour=Whether the platform moves along the track linearly or with easing.
+entities.EeveeHelper/SMWPlatform.attributes.description.easing=The easing of the platform's movement along the track, if move behaviour is Easing.
+entities.EeveeHelper/SMWPlatform.attributes.description.easeDuration=How long the platform takes to ease along the track.
+entities.EeveeHelper/SMWPlatform.attributes.description.easeTrackDirection=Whether the track's direction should affect the easing. If enabled, the platform will smoothly "bounce back" when it reaches the end of the track.
+entities.EeveeHelper/SMWPlatform.attributes.description.stopAtEnd=Whether the platform should stop moving when it reaches the end of the track.
+entities.EeveeHelper/SMWPlatform.attributes.description.moveOnce=Whether the platform can be re-activated after stopping.
+entities.EeveeHelper/SMWPlatform.attributes.description.startDelay=The delay before the platform starts moving when activated. Only applies if the platform needs to be started with a touch/flag.
 
 # Room Chest
 entities.EeveeHelper/RoomChest.placements.name.default=Room Chest (WIP)

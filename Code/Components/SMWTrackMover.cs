@@ -8,25 +8,49 @@ using System.Threading.Tasks;
 
 namespace Celeste.Mod.EeveeHelper.Entities {
     public class SMWTrackMover : Component {
-        // Right = move forward, Left = move back
-        public Facings Direction;
-        public float MoveSpeed = 100f;
+        public Behaviour MoveBehaviour;
+        public Facings Direction; // Right = move forward, Left = move back
         public float Gravity = 200f;
         public float FallSpeed = 200f;
+        // Linear move behaviour options
+        public float MoveSpeed = 100f;
+        // Easing move behaviour options
+        public Ease.Easer Easer = Ease.SineInOut;
+        public float EaseDuration = 2f;
+        public bool EaseTrackDir = false;
+
         public Func<Vector2> GetPosition;
         public Action<Vector2, Vector2> SetPosition;
-
+        public Action<SMWTrackMover, Facings> OnEnd;
+        
         public SMWTrack Track;
         public float Progress;
         public Vector2 Speed;
         public bool Activated = true;
+        public bool StopAtEnd;
+        public Facings StartDirection;
 
-        private Vector2 lastMove;
+        private float easeTimer;
+        private Vector2 lastMoveAngle;
+        private Vector2 lastEasedMove;
         private SMWTrack.Section lastSection;
         private float lastSectionCooldown;
 
         public SMWTrackMover()
             : base(true, true) { }
+
+        public SMWTrackMover(EntityData data) : this() {
+            MoveBehaviour = data.Enum("moveBehaviour", Behaviour.Linear);
+            Direction = data.Enum<Facings>("direction");
+            Gravity = data.Float("gravity");
+            FallSpeed = data.Float("fallSpeed");
+
+            MoveSpeed = data.Float("moveSpeed");
+
+            Easer = EeveeHelperModule.EaseTypes[data.Attr("easing", "SineInOut")];
+            EaseDuration = data.Float("easeDuration", 2f);
+            EaseTrackDir = data.Bool("easeTrackDirection");
+        }
 
         public override void EntityAwake() {
             base.EntityAwake();
@@ -51,15 +75,17 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             if (!Activated)
                 return;
             if (Track != null) {
-                var move = MoveSpeed * Engine.DeltaTime * (Direction == Facings.Left ? -1f : 1f);
-                SetProgress(Progress + move);
+                switch (MoveBehaviour) {
+                    case Behaviour.Linear: MoveLinear(); break;
+                    case Behaviour.Easing: MoveEased(); break;
+                }
             } else {
                 if ((FallSpeed <= 0f && Speed.Y < FallSpeed) || (FallSpeed >= 0f && Speed.Y > FallSpeed))
                     Speed.Y = FallSpeed;
                 Speed.Y = Calc.Approach(Speed.Y, FallSpeed, Gravity * Engine.DeltaTime);
 
                 foreach (SMWTrack track in Scene.Tracker.GetEntities<SMWTrack>()) {
-                    var section = track.GetIntersect(GetAttachPos(), GetAttachPos() + Speed * Engine.DeltaTime, out var intersect);
+                    var section = track.GetIntersect(GetAttachPos(), GetAttachPos() + Speed * Engine.DeltaTime, out var intersect, parallelTolerance: 0.1f);
                     if (section != null && (section != lastSection || lastSectionCooldown <= 0f)) {
                         AttachTo(track, section, intersect);
                         return;
@@ -70,37 +96,101 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             }
         }
 
+        private void MoveLinear() {
+            var move = MoveSpeed * Engine.DeltaTime * (Direction == Facings.Left ? -1f : 1f);
+            SetProgress(Progress + move);
+        }
+
+        private void MoveEased() {
+            easeTimer += Engine.DeltaTime * ((Direction == Facings.Left && EaseTrackDir) ? -1f : 1f);
+
+            float newProgress;
+            if (easeTimer >= EaseDuration) {
+                easeTimer = EaseDuration;
+                newProgress = Track.Length;
+            } else if (easeTimer <= 0f) {
+                easeTimer = 0f;
+                newProgress = -0.01f;
+            } else {
+                // Keep progress to 0.01 less than track length since track behavior is exclusive of the full length
+                newProgress = Easer(easeTimer / EaseDuration) * (Track.Length - 0.01f);
+            }
+
+            // If the ease is opposite of the track direction (only when "Ease Track Dir" is disabled), reverse the progress
+            if (!EaseTrackDir && Direction == Facings.Left)
+                newProgress = (Track.Length - 0.01f) - newProgress;
+
+            lastEasedMove = GetEasedMove(newProgress);
+
+            // Ease timer needs to go up to max during GetEasedMove for accurate speed calculation, so reset it after
+            if (!EaseTrackDir && easeTimer >= EaseDuration)
+                easeTimer = 0f;
+
+            SetProgress(newProgress);
+        }
+
         private bool TryFall(float progress) {
+            var newProgress = progress;
+
             if (Track.Enabled) {
                 if (progress < 0f && Track.StartOpen) {
                     lastSection = Track.Sections.First();
-                    lastMove = lastSection.GetAngle(0f) * -1f;
+                    lastMoveAngle = lastSection.GetAngle(0f) * -1f;
                     MoveTo(lastSection.Start);
                 } else if (progress >= Track.Length && Track.EndOpen) {
                     lastSection = Track.Sections.Last();
-                    lastMove = lastSection.GetAngle(lastSection.Length);
+                    lastMoveAngle = lastSection.GetAngle(lastSection.Length);
                     MoveTo(lastSection.End);
-                    progress -= Track.Length;
+                    newProgress -= Track.Length;
                 } else {
                     return false;
                 }
             } else {
-                progress = 0;
+                newProgress = 0;
             }
-            lastSectionCooldown = 0.3f;
-            Speed = lastMove * MoveSpeed;
+
+            if (MoveBehaviour == Behaviour.Linear) {
+                Speed = lastMoveAngle * MoveSpeed;
+            } else if (MoveBehaviour == Behaviour.Easing) {
+                Speed = lastEasedMove;
+            }
+
             if (Speed.X < 0)
                 Direction = Facings.Left;
             if (Speed.X > 0)
                 Direction = Facings.Right;
-            Progress = progress;
+
+            Progress = newProgress;
             Track = null;
+            lastSectionCooldown = 0.3f;
 
             return true;
         }
 
+        private Vector2 GetEasedMove(float? progress = null) {
+            var clampedProgress = Calc.Clamp((progress ?? Progress) / Track.Length, 0f, 1f);
+
+            // Calculate speed using a short segment of the track
+            float easeStart = Calc.Clamp(easeTimer + ((Direction == Facings.Left && EaseTrackDir) ? 0.01f : -0.01f), 0f, EaseDuration);
+            float easeEnd = easeTimer;
+
+            // Keep progress to 0.01 less than track length since track behavior is exclusive of the full length
+            var progressStart = Math.Min(Easer(easeStart / EaseDuration) * Track.Length, Track.Length - 0.01f);
+            var progressEnd = Math.Min(Easer(easeEnd / EaseDuration) * Track.Length, Track.Length - 0.01f);
+
+            // Reverse progress if the ease is opposite of the track direction (only when "Ease Track Dir" is disabled)
+            if (Direction == Facings.Left && !EaseTrackDir) {
+                progressStart = (Track.Length - 0.01f) - progressStart;
+                progressEnd = (Track.Length - 0.01f) - progressEnd;
+            }
+
+            var move = Track.GetPos(progressEnd) - Track.GetPos(progressStart);
+
+            // Multiply by 100 to get the final speed, since we used a 0.01 second difference in easing
+            return move * 100f;
+        }
+
         private void SetProgress(float progress) {
-            var lastTrack = Track;
             if (TryFall(progress)) {
                 foreach (SMWTrack track in Scene.Tracker.GetEntities<SMWTrack>()) {
                     var section = track.TryQuickAttach(GetAttachPos(), out var hit, ignore: lastSectionCooldown <= 0f ? null : lastSection);
@@ -108,7 +198,9 @@ namespace Celeste.Mod.EeveeHelper.Entities {
                         var progressAdd = Math.Abs(Progress);
                         AttachTo(track, section, hit);
                         Direction = Progress == 0f ? Facings.Right : Facings.Left;
-                        SetProgress(Progress + progressAdd * (Direction == Facings.Left ? -1f : 1f));
+                        if (MoveBehaviour == Behaviour.Linear) {
+                            SetProgress(Progress + progressAdd * (Direction == Facings.Left ? -1f : 1f));
+                        }
                         break;
                     }
                 }
@@ -117,26 +209,44 @@ namespace Celeste.Mod.EeveeHelper.Entities {
 
             if (Track.Length > 0f) {
                 if (progress < 0f || progress >= Track.Length) {
+                    // Whether the movement past the end of the track should be used backwards; otherwise, snap to the end
+                    var keepGoing = MoveBehaviour == Behaviour.Linear && !StopAtEnd;
+
+                    var endDirection = Direction;
+
                     if (progress < 0f) {
-                        progress *= -1f;
-                        Flip();
+                        progress = keepGoing ? -progress : 0f;
                     } else if (progress >= Track.Length) {
-                        progress = Track.Length - (progress - Track.Length);
+                        progress = Track.Length - (keepGoing ? (progress - Track.Length) : 0f);
+                    }
+                    progress = Calc.Clamp(progress, 0f, Track.Length - 0.01f); // Avoid infinite loop
+
+                    // Make sure the direction at the time of SetProgress is the accurate movement direction
+                    // This means that we only flip the direction *after* SetProgress if movement snaps to the end here
+                    if (keepGoing) {
+                        Flip();
+                        SetProgress(progress);
+                    } else {
+                        SetProgress(progress);
                         Flip();
                     }
-                    // hmmm
-                    SetProgress(progress);
+
+                    if (StopAtEnd) {
+                        Activated = false;
+                    }
+
+                    OnEnd?.Invoke(this, endDirection);
                     return;
                 }
 
                 var section = Track.GetSection(progress);
                 lastSection = section;
-                lastMove = section.GetAngle(progress) * (int)Direction;
+                lastMoveAngle = section.GetAngle(progress) * (int)Direction;
                 MoveTo(section.GetPos(progress - section.Offset));
                 Progress = progress;
             } else {
                 lastSection = null;
-                lastMove = Vector2.Zero;
+                lastMoveAngle = Vector2.Zero;
                 MoveTo(Track.Position);
                 Progress = 0f;
             }
@@ -159,6 +269,20 @@ namespace Celeste.Mod.EeveeHelper.Entities {
                     Flip();
             }
 
+            StartDirection = Direction;
+
+            if (MoveBehaviour == Behaviour.Easing) {
+                var easeProgress = Progress / Track.Length;
+
+                if (Direction == Facings.Left && !EaseTrackDir)
+                    easeProgress = 1f - easeProgress;
+
+                var reverseEaser = ReverseEase.GetReverse(Easer);
+                easeTimer = reverseEaser(easeProgress) * EaseDuration;
+
+                lastEasedMove = GetEasedMove();
+            }
+
             Speed = Vector2.Zero;
         }
 
@@ -170,11 +294,29 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             return GetPosition?.Invoke() ?? Entity.Center;
         }
 
+        public Vector2 GetLiftSpeed(Vector2 pos) {
+
+            switch (MoveBehaviour) {
+                case Behaviour.Linear:
+                    return lastMoveAngle * MoveSpeed;
+                case Behaviour.Easing:
+                    return Track != null ? lastEasedMove : Speed;
+                default:
+                    return Vector2.Zero;
+            }
+        }
+
         private void MoveTo(Vector2 pos, Vector2? liftSpeed = null) {
-            if (SetPosition != null)
-                SetPosition(pos, liftSpeed ?? lastMove * MoveSpeed);
-            else
+            if (SetPosition != null) {
+                SetPosition(pos, liftSpeed ?? GetLiftSpeed(pos));
+            } else {
                 Entity.Center = pos;
+            }
+        }
+
+        public enum Behaviour {
+            Linear,
+            Easing
         }
     }
 }

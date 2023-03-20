@@ -8,19 +8,43 @@ local smwPlatform = {
     canResize = {true, false},
 
     placements = {
-        name = "default",
-        data = {
-            width = 40,
-            height = 8,
-            texturePath = "objects/EeveeHelper/smwPlatform",
-            moveSpeed = 100.0,
-            fallSpeed = 200.0,
-            gravity = 200.0,
-            direction = "Right",
-            flag = "",
-            notFlag = false,
-            startOnTouch = true,
-            disableBoost = false,
+        default = {
+            data = {
+                width = 40,
+                height = 8,
+                texturePath = "objects/EeveeHelper/smwPlatform",
+                moveSpeed = 100.0,
+                fallSpeed = 200.0,
+                gravity = 200.0,
+                startDelay = 0.0,
+                direction = "Right",
+                flag = "",
+                moveBehaviour = "Linear",
+                easing = "SineInOut",
+                easeDuration = 2.0,
+                easeTrackDirection = false,
+                notFlag = false,
+                startOnTouch = true,
+                stopAtEnd = false,
+                moveOnce = false,
+                disableBoost = false,
+            }
+        },
+        {
+            name = "linear",
+            data = {
+                width = 40,
+                height = 8,
+                moveBehaviour = "Linear"
+            }
+        },
+        {
+            name = "easing",
+            data = {
+                width = 40,
+                height = 8,
+                moveBehaviour = "Easing"
+            }
         }
     },
 
@@ -28,8 +52,32 @@ local smwPlatform = {
         direction = {
             options = { "Left", "Right" },
             editable = false,
+        },
+        moveBehaviour = {
+            options = { "Linear", "Easing" },
+            editable = false,
+        },
+        easing = {
+            options = { "Linear", "SineIn", "SineOut", "SineInOut", "QuadIn", "QuadOut", "QuadInOut", "CubeIn", "CubeOut", "CubeInOut", "QuintIn", "QuintOut", "QuintInOut", "ExpoIn", "ExpoOut", "ExpoInOut" },
+            editable = false
         }
     },
+
+    ignoredFields = function (entity)
+        local ignored = {"_name", "_id", "originX", "originY", "height"}
+
+        if entity.moveBehaviour == "Linear" then
+            table.insert(ignored, "easing")
+            table.insert(ignored, "easeDuration")
+            table.insert(ignored, "easeTrackDirection")
+
+        elseif entity.moveBehaviour == "Easing" then
+            table.insert(ignored, "moveSpeed")
+
+        end
+
+        return ignored
+    end,
 
     selection = function (room, entity)
         return utils.rectangle(entity.x - entity.width / 2, entity.y - 8, entity.width, 8)

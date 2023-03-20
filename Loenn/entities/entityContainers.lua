@@ -112,26 +112,77 @@ local SMWTrackContainer = {
     borderColor = { 1.0, 0.6, 0.6, 1 },
 
     placements = {
-        name = "default",
-        data = {
-            width = 8,
-            height = 8,
-            whitelist = "",
-            blacklist = "",
-            containMode = "RoomStart",
-            containFlag = "",
-            fitContained = true,
-            ignoreAnchors = false,
-            forceStandardBehavior = false,
-            moveSpeed = 100.0,
-            fallSpeed = 200.0,
-            gravity = 200.0,
-            direction = "Right",
-            moveFlag = "",
-            startOnTouch = false,
-            disableBoost = false,
+        default = {
+            data = {
+                width = 8,
+                height = 8,
+                whitelist = "",
+                blacklist = "",
+                containMode = "RoomStart",
+                containFlag = "",
+                fitContained = true,
+                ignoreAnchors = false,
+                forceStandardBehavior = false,
+                moveSpeed = 100.0,
+                fallSpeed = 200.0,
+                gravity = 200.0,
+                startDelay = 0.0,
+                direction = "Right",
+                moveFlag = "",
+                moveBehaviour = "Linear",
+                easing = "SineInOut",
+                easeDuration = 2.0,
+                easeTrackDirection = false,
+                startOnTouch = false,
+                stopAtEnd = false,
+                moveOnce = false,
+                disableBoost = false,
+            }
+        },
+        {
+            name = "linear",
+            data = {
+                width = 40,
+                height = 8,
+                moveBehaviour = "Linear"
+            }
+        },
+        {
+            name = "easing",
+            data = {
+                width = 40,
+                height = 8,
+                moveBehaviour = "Easing"
+            }
         }
-    }
+    },
+
+    fieldInformation = {
+        easing = {
+            options = { "Linear", "SineIn", "SineOut", "SineInOut", "QuadIn", "QuadOut", "QuadInOut", "CubeIn", "CubeOut", "CubeInOut", "QuintIn", "QuintOut", "QuintInOut", "ExpoIn", "ExpoOut", "ExpoInOut" },
+            editable = false
+        },
+        moveBehaviour = {
+            options = { "Linear", "Easing" },
+            editable = false,
+        }
+    },
+
+    ignoredFields = function (entity)
+        local ignored = {"_name", "_id", "originX", "originY"}
+
+        if entity.moveBehaviour == "Linear" then
+            table.insert(ignored, "easing")
+            table.insert(ignored, "easeDuration")
+            table.insert(ignored, "easeTrackDirection")
+
+        elseif entity.moveBehaviour == "Easing" then
+            table.insert(ignored, "moveSpeed")
+
+        end
+
+        return ignored
+    end,
 }
 
 local flagGateContainer = {
@@ -315,7 +366,13 @@ local sharedFieldInformation = {
 }
 
 for _, container in ipairs(containers) do
-    container.fieldInformation = sharedFieldInformation
+    container.fieldInformation = container.fieldInformation or {}
+    for k, v in pairs(sharedFieldInformation) do
+        -- only add shared field information if it doesn't already exist
+        if container.fieldInformation[k] == nil then
+            container.fieldInformation[k] = v
+        end
+    end
     container.depth = math.huge -- make containers render below everything
 end
 
