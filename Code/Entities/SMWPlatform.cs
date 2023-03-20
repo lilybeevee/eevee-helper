@@ -25,8 +25,10 @@ namespace Celeste.Mod.EeveeHelper.Entities {
         public SMWPlatform(EntityData data, Vector2 offset) : base(data.Position + offset, data.Width, false) {
             Collider.Position -= new Vector2(Width / 2f, 8);
             Depth = -60; // jumpthru depth
+            
+            // incorrectly checked "sprite" instead of "texturePath" before, prioritize sprite option incase anyone set it manually
+            texturePath = data.Attr("sprite", data.Attr("texturePath", "objects/EeveeHelper/smwPlatform"));
 
-            texturePath = data.Attr("sprite", "objects/EeveeHelper/smwPlatform");
             flag = data.Attr("flag");
             notFlag = data.Bool("notFlag");
             startOnTouch = data.Bool("startOnTouch");
