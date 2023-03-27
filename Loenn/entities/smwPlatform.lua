@@ -25,7 +25,6 @@ local smwPlatform = {
                 easeTrackDirection = false,
                 notFlag = false,
                 startOnTouch = true,
-                stopAtNode = false,
                 stopAtEnd = false,
                 moveOnce = false,
                 disableBoost = false,
