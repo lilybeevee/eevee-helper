@@ -116,8 +116,9 @@ entities.EeveeHelper/SMWTrackContainer.attributes.description.moveBehaviour=Whet
 entities.EeveeHelper/SMWTrackContainer.attributes.description.easing=The easing of the container's movement along the track, if move behaviour is Easing.
 entities.EeveeHelper/SMWTrackContainer.attributes.description.easeDuration=How long the container takes to ease along the track.
 entities.EeveeHelper/SMWTrackContainer.attributes.description.easeTrackDirection=Whether the track's direction should affect the easing. If enabled, the container will smoothly "bounce back" when it reaches the end of the track.
-entities.EeveeHelper/SMWTrackContainer.attributes.description.stopAtEnd=Whether the container should stop moving when it reaches the end of the track.
-entities.EeveeHelper/SMWTrackContainer.attributes.description.moveOnce=Whether the container can be re-activated after after stopping.
+entities.EeveeHelper/SMWTrackContainer.attributes.description.stopAtNode=Whether the container should stop moving when it reaches a node on the track.
+entities.EeveeHelper/SMWTrackContainer.attributes.description.stopAtEnd=Whether the container should stop moving when it reaches the end of the track. (Always enabled if Stop At Node is enabled)
+entities.EeveeHelper/SMWTrackContainer.attributes.description.moveOnce=Whether the container can be re-activated after reaching the end of the track. (Only if Stop At Node/End is enabled)
 entities.EeveeHelper/SMWTrackContainer.attributes.description.startDelay=The delay before the container starts moving when activated. Only applies if the container needs to be started with a touch/flag.
 
 # Flag Gate Container
@@ -177,8 +178,9 @@ entities.EeveeHelper/SMWPlatform.attributes.description.moveBehaviour=Whether th
 entities.EeveeHelper/SMWPlatform.attributes.description.easing=The easing of the platform's movement along the track, if move behaviour is Easing.
 entities.EeveeHelper/SMWPlatform.attributes.description.easeDuration=How long the platform takes to ease along the track.
 entities.EeveeHelper/SMWPlatform.attributes.description.easeTrackDirection=Whether the track's direction should affect the easing. If enabled, the platform will smoothly "bounce back" when it reaches the end of the track.
-entities.EeveeHelper/SMWPlatform.attributes.description.stopAtEnd=Whether the platform should stop moving when it reaches the end of the track.
-entities.EeveeHelper/SMWPlatform.attributes.description.moveOnce=Whether the platform can be re-activated after stopping.
+entities.EeveeHelper/SMWPlatform.attributes.description.stopAtNode=Whether the platform should stop moving when it reaches a node on the track.
+entities.EeveeHelper/SMWPlatform.attributes.description.stopAtEnd=Whether the platform should stop moving when it reaches the end of the track. (Always enabled if Stop At Node is enabled)
+entities.EeveeHelper/SMWPlatform.attributes.description.moveOnce=Whether the platform can be re-activated after reaching the end of the track. (Only if Stop At Node/End is enabled)
 entities.EeveeHelper/SMWPlatform.attributes.description.startDelay=The delay before the platform starts moving when activated. Only applies if the platform needs to be started with a touch/flag.
 
 # Room Chest

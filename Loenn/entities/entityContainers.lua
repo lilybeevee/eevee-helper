@@ -134,6 +134,7 @@ local SMWTrackContainer = {
                 easeDuration = 2.0,
                 easeTrackDirection = false,
                 startOnTouch = false,
+                stopAtNode = false,
                 stopAtEnd = false,
                 moveOnce = false,
                 disableBoost = false,

@@ -14,6 +14,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
         private string flag;
         private bool notFlag;
         private bool startOnTouch;
+        private bool stopAtNode;
         private bool stopAtEnd;
         private bool once;
         private bool disableBoost;
@@ -36,12 +37,14 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             flag = data.Attr("flag");
             notFlag = data.Bool("notFlag");
             startOnTouch = data.Bool("startOnTouch");
+            stopAtNode = data.Bool("stopAtNode");
             stopAtEnd = data.Bool("stopAtEnd");
             once = data.Bool("moveOnce");
             disableBoost = data.Bool("disableBoost");
             startDelay = data.Float("startDelay");
 
             Add(Mover = new SMWTrackMover(data) {
+                StopAtNode = stopAtNode,
                 StopAtEnd = stopAtEnd,
 
                 GetPosition = () => ExactPosition,
@@ -50,14 +53,14 @@ namespace Celeste.Mod.EeveeHelper.Entities {
                     MoveTo(pos, EeveeUtils.GetTrackBoost(move, disableBoost));
                 },
 
-                OnEnd = (mover, direction) => {
-                    if (stopAtEnd) {
-                        if (startOnTouch) {
-                            started = false;
-                        }
-                        movedOnce = true;
-                        waitingForRestart = true;
+                OnStop = (mover, end) => {
+                    if (startOnTouch) {
+                        started = false;
                     }
+                    if (end) {
+                        movedOnce = true;
+                    }
+                    waitingForRestart = true;
                 }
             });
 
@@ -90,7 +93,7 @@ namespace Celeste.Mod.EeveeHelper.Entities {
             base.Awake(scene);
 
             // If the platform is active on spawn, skip the start delay
-            if (CheckStarted())
+            if (!startOnTouch && CheckStarted())
                 startTimer = startDelay;
         }
 
