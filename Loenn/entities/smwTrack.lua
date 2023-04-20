@@ -33,6 +33,7 @@ local smwTrack = {
 
     placements = {
         name = "default",
+        placementType = "line",
         data = {
             color = "FFFFFF",
             inactiveColor = "",
