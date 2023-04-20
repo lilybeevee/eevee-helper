@@ -96,6 +96,14 @@ placements.entities.EeveeHelper/SMWTrackContainer.tooltips.moveSpeed=Speed at wh
 placements.entities.EeveeHelper/SMWTrackContainer.tooltips.direction=Initial direction the container moves along its track.
 placements.entities.EeveeHelper/SMWTrackContainer.tooltips.disableBoost=Disables horizontal boost from track movement.
 placements.entities.EeveeHelper/SMWTrackContainer.tooltips.startOnTouch=Makes the container only start moving when the player touches a contained entity.
+placements.entities.EeveeHelper/SMWTrackContainer.tooltips.moveBehaviour=Whether the container moves along the track linearly or with easing.
+placements.entities.EeveeHelper/SMWTrackContainer.tooltips.easing=The easing of the container's movement along the track, if move behaviour is Easing.
+placements.entities.EeveeHelper/SMWTrackContainer.tooltips.easeDuration=How long the container takes to ease along the track.
+placements.entities.EeveeHelper/SMWTrackContainer.tooltips.easeTrackDirection=Whether the track's direction should affect the easing. If enabled, the container will smoothly "bounce back" when it reaches the end of the track.
+placements.entities.EeveeHelper/SMWTrackContainer.tooltips.stopAtNode=Whether the container should stop moving when it reaches a node on the track.
+placements.entities.EeveeHelper/SMWTrackContainer.tooltips.stopAtEnd=Whether the container should stop moving when it reaches the end of the track. (Always enabled if Stop At Node is enabled)
+placements.entities.EeveeHelper/SMWTrackContainer.tooltips.moveOnce=Whether the container can be re-activated after reaching the end of the track. (Only if Stop At Node/End is enabled)
+placements.entities.EeveeHelper/SMWTrackContainer.tooltips.startDelay=The delay before the container starts moving when activated. Only applies if the container needs to be started with a touch/flag.
 
 # Flag Gate Container
 placements.entities.EeveeHelper/FlagGateContainer.tooltips.fitContained=Whether the container's box is resized if entities inside it move.
@@ -146,6 +154,14 @@ placements.entities.EeveeHelper/SMWPlatform.tooltips.direction=Initial direction
 placements.entities.EeveeHelper/SMWPlatform.tooltips.disableBoost=Disables horizontal boost from track movement.
 placements.entities.EeveeHelper/SMWPlatform.tooltips.notFlag=Inverts the flag requirement for the platform to move.
 placements.entities.EeveeHelper/SMWPlatform.tooltips.startOnTouch=Makes the platform only start moving when the player touches it.
+placements.entities.EeveeHelper/SMWPlatform.tooltips.moveBehaviour=Whether the platform moves along the track linearly or with easing.
+placements.entities.EeveeHelper/SMWPlatform.tooltips.easing=The easing of the platform's movement along the track, if move behaviour is Easing.
+placements.entities.EeveeHelper/SMWPlatform.tooltips.easeDuration=How long the platform takes to ease along the track.
+placements.entities.EeveeHelper/SMWPlatform.tooltips.easeTrackDirection=Whether the track's direction should affect the easing. If enabled, the platform will smoothly "bounce back" when it reaches the end of the track.
+placements.entities.EeveeHelper/SMWPlatform.tooltips.stopAtNode=Whether the platform should stop moving when it reaches a node on the track.
+placements.entities.EeveeHelper/SMWPlatform.tooltips.stopAtEnd=Whether the platform should stop moving when it reaches the end of the track. (Always enabled if Stop At Node is enabled)
+placements.entities.EeveeHelper/SMWPlatform.tooltips.moveOnce=Whether the platform can be re-activated after reaching the end of the track. (Only if Stop At Node/End is enabled)
+placements.entities.EeveeHelper/SMWPlatform.tooltips.startDelay=The delay before the platform starts moving when activated. Only applies if the platform needs to be started with a touch/flag.
 
 # Room Chest
 placements.entities.EeveeHelper/RoomChest.tooltips.room=Name of the room this chest should take you to.

@@ -20,8 +20,9 @@ using ..Ahorn, Maple, Ahorn.Selection
 @mapdef Entity "EeveeHelper/SMWTrackContainer" SMWTrackContainer(x::Integer, y::Integer, width::Integer=8, height::Integer=8,
     whitelist::String="", blacklist::String="", containMode::String="RoomStart", containFlag::String="",
     fitContained::Bool=true, ignoreAnchors::Bool=false, forceStandardBehavior::Bool=false,
-    moveSpeed::Number=100.0, fallSpeed::Number=200.0, gravity::Number=200.0, direction::String="Right", moveFlag::String="", startOnTouch::Bool=false,
-    disableBoost::Bool=false)
+    moveSpeed::Number=100.0, fallSpeed::Number=200.0, gravity::Number=200.0, startDelay::Number=0.0, direction::String="Right", moveFlag::String="",
+    moveBehaviour::String="Linear", easing::String="SineInOut", easeDuration::Number=2.0, easeTrackDirection::Bool=false, startOnTouch::Bool=false,
+    stopAtNode::Bool=false, stopAtEnd::Bool=false, moveOnce::Bool=false, disableBoost::Bool=false)
 @mapdef Entity "EeveeHelper/FlagGateContainer" FlagGateContainer(x::Integer, y::Integer, width::Integer=8, height::Integer=8,
     whitelist::String="", blacklist::String="", containMode::String="RoomStart", containFlag::String="",
     fitContained::Bool=true, ignoreAnchors::Bool=false, forceStandardBehavior::Bool=false,
@@ -154,6 +155,7 @@ Ahorn.editingOrder(entity::FloatyContainer) = ["x", "y", "width", "height", "con
 const containModeOptions = ["RoomStart", "FlagChanged", "Always"]
 
 const easeTypes = ["Linear", "SineIn", "SineOut", "SineInOut", "QuadIn", "QuadOut", "QuadInOut", "CubeIn", "CubeOut", "CubeInOut", "QuintIn", "QuintOut", "QuintInOut", "BackIn", "BackOut", "BackInOut", "ExpoIn", "ExpoOut", "ExpoInOut", "BigBackIn", "BigBackOut", "BigBackInOut", "ElasticIn", "ElasticOut", "ElasticInOut", "BounceIn", "BounceOut", "BounceInOut"]
+const easeTypesReversible = ["Linear", "SineIn", "SineOut", "SineInOut", "QuadIn", "QuadOut", "QuadInOut", "CubeIn", "CubeOut", "CubeInOut", "QuintIn", "QuintOut", "QuintInOut", "ExpoIn", "ExpoOut", "ExpoInOut"]
 
 Ahorn.editingOptions(entity::containerUnion) = Dict{String, Any}(
     "containMode" => containModeOptions
@@ -164,7 +166,9 @@ Ahorn.editingOptions(entity::AttachedContainer) = Dict{String, Any}(
 )
 Ahorn.editingOptions(entity::SMWTrackContainer) = Dict{String, Any}(
     "containMode" => containModeOptions,
-    "direction" => ["Left", "Right"]
+    "direction" => ["Left", "Right"],
+    "moveBehaviour" => ["Linear", "Easing"],
+    "easing" => easeTypesReversible
 )
 Ahorn.editingOptions(entity::FlagGateContainer) = Dict{String, Any}(
     "containMode" => containModeOptions,

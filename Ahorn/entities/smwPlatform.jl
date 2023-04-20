@@ -3,8 +3,9 @@ module EeveeHelperSMWPlatform
 using ..Ahorn, Maple
 
 @mapdef Entity "EeveeHelper/SMWPlatform" SMWPlatform(x::Integer, y::Integer, width::Integer=40, height::Integer=8, texturePath::String="objects/EeveeHelper/smwPlatform",
-    moveSpeed::Number=100.0, fallSpeed::Number=200.0, gravity::Number=200.0, direction::String="Right", flag::String="", notFlag::Bool=false, startOnTouch::Bool=true,
-    disableBoost::Bool=false)
+    moveSpeed::Number=100.0, fallSpeed::Number=200.0, gravity::Number=200.0, startDelay::Number=0.0, direction::String="Right", flag::String="",
+    moveBehaviour::String="Linear", easing::String="SineInOut", easeDuration::Number=2.0, easeTrackDirection::Bool=false, notFlag::Bool=false, startOnTouch::Bool=true,
+    stopAtNode::Bool=false, stopAtEnd::Bool=false, moveOnce::Bool=false, disableBoost::Bool=false)
 
 const placements = Ahorn.PlacementDict(
     "SMW Platform (Eevee Helper)" => Ahorn.EntityPlacement(
@@ -17,7 +18,9 @@ Ahorn.minimumSize(entity::SMWPlatform) = 16, 0
 Ahorn.resizable(entity::SMWPlatform) = true, false
 
 Ahorn.editingOptions(entity::SMWPlatform) = Dict{String, Any}(
-    "direction" => ["Left", "Right"]
+    "direction" => ["Left", "Right"],
+    "moveBehaviour" => ["Linear", "Easing"],
+    "easing" => ["Linear", "SineIn", "SineOut", "SineInOut", "QuadIn", "QuadOut", "QuadInOut", "CubeIn", "CubeOut", "CubeInOut", "QuintIn", "QuintOut", "QuintInOut", "ExpoIn", "ExpoOut", "ExpoInOut"]
 )
 
 function Ahorn.selection(entity::SMWPlatform)
